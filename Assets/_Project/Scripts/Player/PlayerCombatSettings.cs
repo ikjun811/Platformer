@@ -18,6 +18,8 @@ namespace Platformer.Player
         [SerializeField] float beamRadius = 0.15f;
         [Tooltip("연사 간격 (초)")]
         [SerializeField] float fireCooldown = 0.12f;
+        [Tooltip("빔 피해")]
+        [SerializeField] int beamDamage = 10;
 
         [Header("차지 빔")]
         [Tooltip("J를 누르고 있어야 하는 충전 시간 (초). 다 차면 떼는 순간 차지 빔")]
@@ -28,6 +30,8 @@ namespace Platformer.Player
         [SerializeField] float chargeBeamRange = 14f;
         [Tooltip("차지 빔 충돌 반지름 (타일)")]
         [SerializeField] float chargeBeamRadius = 0.35f;
+        [Tooltip("차지 빔 피해")]
+        [SerializeField] int chargeBeamDamage = 30;
 
         [Header("총구 위치")]
         [Tooltip("충돌체 윗면에서 어깨(조준 기준점)까지 내려간 거리 (타일)")]
@@ -49,6 +53,8 @@ namespace Platformer.Player
         public float BeamRange => beamRange;
         public float BeamRadius => beamRadius;
         public float FireCooldown => fireCooldown;
+        public int BeamDamage => beamDamage;
+        public int ChargeBeamDamage => chargeBeamDamage;
         public float ChargeTime => chargeTime;
         public float ChargeBeamSpeed => chargeBeamSpeed;
         public float ChargeBeamRange => chargeBeamRange;

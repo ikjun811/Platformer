@@ -106,7 +106,8 @@ namespace Platformer.Player
             if (movement.ControlLocked || Time.time < nextFireTime) return;
 
             nextFireTime = Time.time + settings.FireCooldown;
-            beamPool.Get().Launch(aim.MuzzlePosition, aim.Direction, settings.BeamSpeed, settings.BeamRange, settings.BeamRadius, hitLayers);
+            beamPool.Get().Launch(aim.MuzzlePosition, aim.Direction, settings.BeamSpeed, settings.BeamRange, settings.BeamRadius,
+                settings.BeamDamage, hitLayers);
         }
 
         void FireChargeBeam()
@@ -115,7 +116,8 @@ namespace Platformer.Player
             if (movement.ControlLocked) return;
 
             nextFireTime = Time.time + settings.FireCooldown;
-            chargeBeamPool.Get().Launch(aim.MuzzlePosition, aim.Direction, settings.ChargeBeamSpeed, settings.ChargeBeamRange, settings.ChargeBeamRadius, hitLayers);
+            chargeBeamPool.Get().Launch(aim.MuzzlePosition, aim.Direction, settings.ChargeBeamSpeed, settings.ChargeBeamRange, settings.ChargeBeamRadius,
+                settings.ChargeBeamDamage, hitLayers);
         }
 
         // 빔 크기와 색은 처음 만들 때 정해진다 (플레이 중에 설정을 바꾸면 이미 만든 빔에는 반영되지 않음)

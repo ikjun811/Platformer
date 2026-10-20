@@ -1,4 +1,5 @@
 using System.Linq;
+using Platformer.Enemies;
 using Platformer.Gameplay;
 using Platformer.Player;
 using UnityEditor;
@@ -28,6 +29,7 @@ namespace Platformer.EditorTools
         const string CombatSettingsPath = "Assets/_Project/Data/PlayerCombatSettings.asset";
         const string HurtSettingsPath = "Assets/_Project/Data/PlayerHurtSettings.asset";
         const string HazardTilePath = "Assets/_Project/Art/Placeholder/Tile_Hazard.asset";
+        const string EnemyPatrolSettingsPath = "Assets/_Project/Data/EnemyPatrolSettings.asset";
         const string CharacterArtFolder = "Assets/_Project/Art/Characters/";
         const string EnvironmentArtFolder = "Assets/_Project/Art/Environment/";
         const string TileFolder = "Assets/_Project/Art/Environment/Tiles";
@@ -45,6 +47,10 @@ namespace Platformer.EditorTools
         static readonly Color BackgroundColor = new Color32(0x1A, 0x1A, 0x2E, 0xFF);
         static readonly Color HazardColor = new Color32(0xD6, 0x45, 0x4E, 0xFF);
         static readonly Color DamageDummyColor = new Color32(0xB0, 0x5C, 0xE0, 0xFF);
+        static readonly Color EnemyColor = new Color32(0xE0, 0x86, 0x2E, 0xFF);
+
+        // 임시 순찰형 적: 0.9 x 0.9 타일 상자
+        static readonly Vector2 EnemySize = new(0.9f, 0.9f);
 
         // 시험용 피해 설정 (가시 = 환경 피해, 상자 = 넉백 확인용 일반 피해)
         const int HazardDamage = 15;
@@ -55,7 +61,7 @@ namespace Platformer.EditorTools
         static readonly Vector2 PlayerSpawn = new(-7f, -4f + 2.25f * 0.5f);
 
         // 테스트 룸 지형 (40x24 타일 = 가로 2화면 x 세로 2화면). '#' = Ground 타일, '.' = 빈칸
-        // '^' = 가시(환경 피해, 임시 빨간 타일), 'D' = 시험용 피해 상자(넉백 확인용, 임시 보라색 상자)
+        // '^' = 가시(환경 피해, 임시 빨간 타일), 'D' = 시험용 피해 상자(넉백 확인용, 임시 보라색 상자), 'E' = 순찰형 적(임시 주황 상자)
         // 맨 윗줄이 y = 17, 맨 아랫줄이 y = -6, 왼쪽 끝이 x = -10
         // 아래층 왼쪽은 기존 지형, 오른쪽 계단 발판으로 위층 바닥 구멍(x = 18~23)을 지나 위층으로 올라간다
         // y = -2 줄의 발판 아래는 높이 2타일 통로다 (서서는 못 지나가고 슬라이드로 통과). x = 16~23은 긴 슬라이드 통로
@@ -82,7 +88,7 @@ namespace Platformer.EditorTools
             "#......................................#",
             "#...####..........####....########.....#",  // y = -2
             "#......................................#",
-            "#......................................#",
+            "#...........E..........................#",  // y = -4 순찰형 적
             "########################################",  // y = -5 아래층 바닥
             "########################################",  // y = -6
         };
@@ -104,6 +110,7 @@ namespace Platformer.EditorTools
             Tilemap groundEdge = SetupGroundEdge(ground);
             Paint(ground, groundEdge, fills, edges);
             SetupTestHazards(ground.GetComponentInParent<Grid>());
+            SetupTestEnemies();
             SetupBackground();
             PlayerMovement player = SetupPlayer();
             SetupCameraFollow(player);
@@ -363,6 +370,65 @@ namespace Platformer.EditorTools
                 }
             }
             tilemap.CompressBounds();
+        }
+
+        // 적은 매번 새로 만든다 ('E' 칸 바닥에 세운다)
+        static void SetupTestEnemies()
+        {
+            GameObject root = GameObject.Find("TestEnemies");
+            if (root != null)
+                Object.DestroyImmediate(root);
+            root = new GameObject("TestEnemies");
+
+            var settings = LoadOrCreateAsset<EnemyPatrolSettings>(EnemyPatrolSettingsPath);
+            for (int row = 0; row < Layout.Length; row++)
+            {
+                for (int col = 0; col < Layout[row].Length; col++)
+                {
+                    if (Layout[row][col] != 'E') continue;
+                    var position = new Vector2(OriginX + col + 0.5f, TopY - row + EnemySize.y * 0.5f);
+                    CreatePatrolEnemy(root.transform, position, settings);
+                }
+            }
+        }
+
+        static void CreatePatrolEnemy(Transform root, Vector2 position, EnemyPatrolSettings settings)
+        {
+            var enemy = new GameObject("EnemyPatrol") { layer = LayerMask.NameToLayer("Enemy") };
+            enemy.transform.SetParent(root, false);
+            enemy.transform.position = position;
+
+            var body = enemy.AddComponent<Rigidbody2D>();
+            body.bodyType = RigidbodyType2D.Dynamic;
+            // 플레이어가 밀어도 잘 밀리지 않도록 무겁게, 벽에 붙어 멈추지 않도록 마찰 0
+            body.mass = 20f;
+            body.gravityScale = 3f;
+            body.interpolation = RigidbodyInterpolation2D.Interpolate;
+            body.sharedMaterial = LoadOrCreateNoFriction();
+            enemy.AddComponent<BoxCollider2D>().size = EnemySize;
+
+            var visual = new GameObject("Visual").transform;
+            visual.SetParent(enemy.transform, false);
+            visual.localScale = new Vector3(EnemySize.x, EnemySize.y, 1f);
+            var sprite = visual.gameObject.AddComponent<SpriteRenderer>();
+            sprite.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(SpritePath);
+            sprite.color = EnemyColor;
+            sprite.sortingOrder = 8;
+
+            enemy.AddComponent<Health>();
+
+            var core = new SerializedObject(enemy.AddComponent<Enemy>());
+            core.FindProperty("settings").objectReferenceValue = settings;
+            core.FindProperty("spriteRenderer").objectReferenceValue = sprite;
+            core.FindProperty("contactTargets").intValue = LayerMask.GetMask("Player");
+            core.ApplyModifiedPropertiesWithoutUndo();
+
+            var patrol = new SerializedObject(enemy.AddComponent<EnemyPatrol>());
+            patrol.FindProperty("settings").objectReferenceValue = settings;
+            patrol.FindProperty("groundLayers").intValue = LayerMask.GetMask("Ground", "OneWay");
+            patrol.FindProperty("startDirection").intValue = -1;
+            patrol.FindProperty("spriteRenderer").objectReferenceValue = sprite;
+            patrol.ApplyModifiedPropertiesWithoutUndo();
         }
 
         static void SetDamageZone(DamageZone zone, int damage, bool isHazard)
