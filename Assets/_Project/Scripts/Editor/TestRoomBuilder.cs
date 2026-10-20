@@ -1,4 +1,5 @@
 using System.Linq;
+using Platformer.Player;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -20,6 +21,8 @@ namespace Platformer.EditorTools
         const string TemplateScenePath = "Assets/Scenes/SampleScene.unity";
         const string SpritePath = "Assets/_Project/Art/Placeholder/Placeholder_Tile.png";
         const string TilePath = "Assets/_Project/Art/Placeholder/Tile_Placeholder.asset";
+        const string MovementSettingsPath = "Assets/_Project/Data/PlayerMovementSettings.asset";
+        const string NoFrictionPath = "Assets/_Project/Data/NoFriction.physicsMaterial2D";
 
         const int PixelsPerUnit = 16;
         const int ReferenceWidth = 320;
@@ -27,6 +30,11 @@ namespace Platformer.EditorTools
 
         static readonly Color BackgroundColor = new Color32(0x1A, 0x1A, 0x2E, 0xFF);
         static readonly Color GroundColor = new Color32(0x6C, 0x7A, 0x89, 0xFF);
+        static readonly Color PlayerColor = new Color32(0xE8, 0x83, 0x3A, 0xFF);
+
+        // 임시 플레이어: 12x36px. 바닥(y = -4) 위 왼쪽에 세운다
+        static readonly Vector2 PlayerSize = new(0.75f, 2.25f);
+        static readonly Vector2 PlayerSpawn = new(-7f, -4f + 2.25f * 0.5f);
 
         // 테스트 룸 지형 (20x12 타일 = 1화면 방). '#' = Ground 타일, '.' = 빈칸
         // 맨 윗줄이 y = 5, 맨 아랫줄이 y = -6, 왼쪽 끝이 x = -10
@@ -62,6 +70,7 @@ namespace Platformer.EditorTools
             SetupCamera();
             Tilemap ground = SetupGround();
             Paint(ground, tile);
+            SetupPlayer();
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
@@ -189,6 +198,79 @@ namespace Platformer.EditorTools
             }
 
             tilemap.CompressBounds();
+        }
+
+        static void SetupPlayer()
+        {
+            PlayerMovement movement = Object.FindAnyObjectByType<PlayerMovement>();
+            GameObject player = movement != null ? movement.gameObject : new GameObject("Player");
+
+            player.name = "Player";
+            player.tag = "Player";
+            int layer = LayerMask.NameToLayer("Player");
+            if (layer < 0)
+                Debug.LogError("[TestRoomBuilder] 'Player' 레이어가 없습니다. Tags and Layers를 확인하세요.");
+            else
+                player.layer = layer;
+            player.transform.position = PlayerSpawn;
+
+            var body = GetOrAdd<Rigidbody2D>(player);
+            body.bodyType = RigidbodyType2D.Dynamic;
+            // 벽에 밀착한 채 공중에서 걸리지 않도록 마찰 0
+            body.sharedMaterial = LoadOrCreateNoFriction();
+
+            var box = GetOrAdd<BoxCollider2D>(player);
+            box.size = PlayerSize;
+            box.offset = Vector2.zero;
+
+            GetOrAdd<PlayerInputReader>(player);
+            movement = GetOrAdd<PlayerMovement>(player);
+
+            // private [SerializeField] 필드는 SerializedObject로 설정한다
+            var serialized = new SerializedObject(movement);
+            serialized.FindProperty("settings").objectReferenceValue = LoadOrCreateMovementSettings();
+            serialized.FindProperty("groundLayers").intValue = LayerMask.GetMask("Ground", "OneWay");
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            SetupPlayerVisual(player);
+        }
+
+        static void SetupPlayerVisual(GameObject player)
+        {
+            Transform visual = player.transform.Find("Visual");
+            if (visual == null)
+            {
+                visual = new GameObject("Visual").transform;
+                visual.SetParent(player.transform, false);
+            }
+
+            visual.localPosition = Vector3.zero;
+            visual.localScale = new Vector3(PlayerSize.x, PlayerSize.y, 1f);
+
+            var sprite = GetOrAdd<SpriteRenderer>(visual.gameObject);
+            sprite.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(SpritePath);
+            sprite.color = PlayerColor;
+            sprite.sortingOrder = 10;
+        }
+
+        static PlayerMovementSettings LoadOrCreateMovementSettings()
+        {
+            var settings = AssetDatabase.LoadAssetAtPath<PlayerMovementSettings>(MovementSettingsPath);
+            if (settings != null) return settings;
+
+            settings = ScriptableObject.CreateInstance<PlayerMovementSettings>();
+            AssetDatabase.CreateAsset(settings, MovementSettingsPath);
+            return settings;
+        }
+
+        static PhysicsMaterial2D LoadOrCreateNoFriction()
+        {
+            var material = AssetDatabase.LoadAssetAtPath<PhysicsMaterial2D>(NoFrictionPath);
+            if (material != null) return material;
+
+            material = new PhysicsMaterial2D("NoFriction") { friction = 0f, bounciness = 0f };
+            AssetDatabase.CreateAsset(material, NoFrictionPath);
+            return material;
         }
 
         static void AddToBuildSettings()
