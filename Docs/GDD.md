@@ -215,7 +215,10 @@
   - 처리: `python Tools/ArtPipeline/process_sprites.py`가 Gemini 원본(`Docs/ArtSamples/Gemini/make/`)의 배경을 지우고 크기·위치를 맞춰 `Assets/_Project/Art/Characters/`에 가로 시트로 저장한다
   - 시트 규격: 칸 384x384 (기어오르기만 512x768), 서 있는 키 288px, 피벗 = 서 있을 때 충돌체 바닥 중앙 (칸 아래쪽 x 192)
   - 재생: `PlayerAnimator`가 시트를 런타임에 잘라 상태별로 재생한다 (Animator Controller 미사용)
-  - 타일, 배경, 소품: AI 이미지 도구로 만든다. 배경은 깊이감을 주는 여러 겹(패럴랙스)으로 구성한다
+  - 타일, 배경: Asset Store 에셋을 가공해서 쓴다 (출처는 `Docs/Credits.md`). `python Tools/ArtPipeline/make_environment.py`가 `Assets/_Project/Art/Environment/`에 만든다
+    - 지형: 바탕 타일 4장(금속판 무늬가 이어지도록 월드 좌표 짝·홀로 선택) + 테두리 덧칠 타일 15장(노출된 면 조합, 별도 타일맵 `GroundEdge`)
+    - 배경: 패럴랙스 4겹 — 우주 성운(0.92) → 별 두 겹(0.9, 0.85) → 창문 뚫린 시설 벽(0.3). 괄호는 카메라를 따라가는 비율(`ParallaxLayer`)
+    - 소품: 추후
   - 프레임 사이 디자인 일관성은 기준 이미지 한 장을 정해 모든 생성의 참조로 쓰는 방식으로 맞춘다
 - **입력**: 기존 `InputSystem_Actions`를 3.3의 조작에 맞게 수정한다 (M0)
 

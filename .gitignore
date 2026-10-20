@@ -76,3 +76,13 @@ crashlytics-build.properties
 
 # Python cache (Tools/ArtGen)
 __pycache__/
+
+# Asset Store 에셋 (원본 재배포 금지 — 다른 PC에서는 Asset Store에서 다시 임포트)
+/Assets/DinV/
+/Assets/DinV.meta
+/Assets/Sci-Fi Texture Pack 2/
+/Assets/Sci-Fi Texture Pack 2.meta
+
+# Gemini 원본과 처리 미리보기 (용량이 크고 재생성 가능)
+/Docs/ArtSamples/Gemini/make/
+/Docs/ArtSamples/Gemini/Processed/

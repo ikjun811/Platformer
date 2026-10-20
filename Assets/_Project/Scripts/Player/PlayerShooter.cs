@@ -42,7 +42,8 @@ namespace Platformer.Player
                 CreateBeam,
                 beam => beam.gameObject.SetActive(true),
                 beam => beam.gameObject.SetActive(false),
-                beam => Destroy(beam.gameObject),
+                // 플레이 종료 시에는 장면이 빔을 먼저 파괴한 뒤 풀이 정리되므로, 이미 사라진 빔은 건너뛴다
+                beam => { if (beam != null) Destroy(beam.gameObject); },
                 defaultCapacity: 8,
                 maxSize: 32);
         }

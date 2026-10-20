@@ -12,7 +12,8 @@ namespace Platformer.EditorTools
 {
     /// <summary>
     /// 메뉴 한 번으로 테스트 룸 씬을 만든다.
-    /// 카메라 설정 → Ground 타일맵 구성 → 텍스트 맵대로 타일 칠하기 → 플레이어 구성 → 저장.
+    /// 카메라 설정 → 지형 타일맵 구성 → 텍스트 맵대로 타일 칠하기 → 배경 → 플레이어 구성 → 저장.
+    /// 지형·배경 그림은 Tools/ArtPipeline/make_environment.py가 만든다. 우주 배경은 Asset Store 에셋(DinV)을 직접 쓴다.
     /// 여러 번 실행해도 기존 오브젝트를 찾아 다시 설정하므로 안전하다.
     /// </summary>
     public static class TestRoomBuilder
@@ -21,18 +22,25 @@ namespace Platformer.EditorTools
         const string LegacyScenePath = "Assets/TestRoom.unity";
         const string TemplateScenePath = "Assets/Scenes/SampleScene.unity";
         const string SpritePath = "Assets/_Project/Art/Placeholder/Placeholder_Tile.png";
-        const string TilePath = "Assets/_Project/Art/Placeholder/Tile_Placeholder.asset";
         const string MovementSettingsPath = "Assets/_Project/Data/PlayerMovementSettings.asset";
         const string NoFrictionPath = "Assets/_Project/Data/NoFriction.physicsMaterial2D";
         const string CameraSettingsPath = "Assets/_Project/Data/CameraSettings.asset";
         const string CombatSettingsPath = "Assets/_Project/Data/PlayerCombatSettings.asset";
         const string CharacterArtFolder = "Assets/_Project/Art/Characters/";
+        const string EnvironmentArtFolder = "Assets/_Project/Art/Environment/";
+        const string TileFolder = "Assets/_Project/Art/Environment/Tiles";
+        const string SpaceArtFolder = "Assets/DinV/Dynamic Space Background/Sprites/";
+
+        // 우주 배경 원본 4096px = 16타일 (반복 배치)
+        const int SpacePixelsPerUnit = 256;
+
+        // 지형 테두리 비트 (make_environment.py와 같다): 노출된 면
+        const int EdgeTop = 1, EdgeRight = 2, EdgeBottom = 4, EdgeLeft = 8;
 
         // 세로 11.25타일이 보이는 카메라 (GDD 5.1)
         const float CameraSize = 5.625f;
 
         static readonly Color BackgroundColor = new Color32(0x1A, 0x1A, 0x2E, 0xFF);
-        static readonly Color GroundColor = new Color32(0x6C, 0x7A, 0x89, 0xFF);
 
         // 임시 플레이어: 12x36px. 바닥(y = -4) 위 왼쪽에 세운다
         static readonly Vector2 PlayerSize = new(0.75f, 2.25f);
@@ -80,12 +88,13 @@ namespace Platformer.EditorTools
             Scene scene = OpenOrCreateScene();
             if (!scene.IsValid()) return;
 
-            TileBase tile = LoadOrCreateTile();
-            if (tile == null) return;
+            if (!LoadGroundTiles(out Tile[] fills, out Tile[] edges)) return;
 
             SetupCamera();
             Tilemap ground = SetupGround();
-            Paint(ground, tile);
+            Tilemap groundEdge = SetupGroundEdge(ground);
+            Paint(ground, groundEdge, fills, edges);
+            SetupBackground();
             PlayerMovement player = SetupPlayer();
             SetupCameraFollow(player);
 
@@ -121,22 +130,45 @@ namespace Platformer.EditorTools
             return EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
         }
 
-        static TileBase LoadOrCreateTile()
+        // fills[x mod 2 + (y mod 2) * 2] = 바탕 타일 (충돌 있음), edges[비트 합] = 테두리 덧칠 타일 (충돌 없음, 0번은 비어 있음)
+        static bool LoadGroundTiles(out Tile[] fills, out Tile[] edges)
         {
-            var tile = AssetDatabase.LoadAssetAtPath<Tile>(TilePath);
-            if (tile != null) return tile;
+            if (!AssetDatabase.IsValidFolder(TileFolder))
+                AssetDatabase.CreateFolder(EnvironmentArtFolder.TrimEnd('/'), "Tiles");
 
-            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(SpritePath);
+            fills = new Tile[4];
+            for (int qy = 0; qy < 2; qy++)
+                for (int qx = 0; qx < 2; qx++)
+                    fills[qx + qy * 2] = LoadOrCreateTile($"Ground_Fill_{qx}{qy}", Tile.ColliderType.Grid);
+
+            edges = new Tile[16];
+            for (int mask = 1; mask < 16; mask++)
+                edges[mask] = LoadOrCreateTile($"Ground_Edge_{mask:00}", Tile.ColliderType.None);
+
+            return fills.All(t => t != null) && edges.Skip(1).All(t => t != null);
+        }
+
+        static Tile LoadOrCreateTile(string spriteName, Tile.ColliderType colliderType)
+        {
+            string spritePath = $"{EnvironmentArtFolder}{spriteName}.png";
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(spritePath);
             if (sprite == null)
             {
-                Debug.LogError($"[TestRoomBuilder] 스프라이트를 찾을 수 없음: {SpritePath}");
+                Debug.LogError($"[TestRoomBuilder] 타일 그림을 찾을 수 없음: {spritePath} (python Tools/ArtPipeline/make_environment.py 실행 필요)");
                 return null;
             }
 
-            tile = ScriptableObject.CreateInstance<Tile>();
+            string tilePath = $"{TileFolder}/{spriteName}.asset";
+            var tile = AssetDatabase.LoadAssetAtPath<Tile>(tilePath);
+            if (tile == null)
+            {
+                tile = ScriptableObject.CreateInstance<Tile>();
+                AssetDatabase.CreateAsset(tile, tilePath);
+            }
+
             tile.sprite = sprite;
-            tile.colliderType = Tile.ColliderType.Grid;
-            AssetDatabase.CreateAsset(tile, TilePath);
+            tile.colliderType = colliderType;
+            EditorUtility.SetDirty(tile);
             return tile;
         }
 
@@ -167,7 +199,8 @@ namespace Platformer.EditorTools
             if (grid == null)
                 grid = new GameObject("Grid").AddComponent<Grid>();
 
-            Tilemap tilemap = grid.GetComponentInChildren<Tilemap>();
+            // 테두리 타일맵(GroundEdge)이 아닌 것을 지형 타일맵으로 쓴다
+            Tilemap tilemap = grid.GetComponentsInChildren<Tilemap>().FirstOrDefault(t => t.name != "GroundEdge");
             if (tilemap == null)
             {
                 var go = new GameObject("Ground");
@@ -185,7 +218,7 @@ namespace Platformer.EditorTools
             else
                 ground.layer = layer;
 
-            tilemap.color = GroundColor;
+            tilemap.color = Color.white;
 
             var body = GetOrAdd<Rigidbody2D>(ground);
             body.bodyType = RigidbodyType2D.Static;
@@ -199,21 +232,138 @@ namespace Platformer.EditorTools
             return tilemap;
         }
 
-        static void Paint(Tilemap tilemap, TileBase tile)
+        // 지형 위에 덧그리는 테두리 타일맵 (충돌 없음)
+        static Tilemap SetupGroundEdge(Tilemap ground)
         {
-            tilemap.ClearAllTiles();
+            Transform grid = ground.transform.parent;
+            Transform edge = grid.Find("GroundEdge");
+            if (edge == null)
+            {
+                edge = new GameObject("GroundEdge").transform;
+                edge.SetParent(grid, false);
+            }
+
+            var tilemap = GetOrAdd<Tilemap>(edge.gameObject);
+            var renderer = GetOrAdd<TilemapRenderer>(edge.gameObject);
+            renderer.sortingOrder = ground.GetComponent<TilemapRenderer>().sortingOrder + 1;
+            return tilemap;
+        }
+
+        static void Paint(Tilemap ground, Tilemap groundEdge, Tile[] fills, Tile[] edges)
+        {
+            ground.ClearAllTiles();
+            groundEdge.ClearAllTiles();
 
             for (int row = 0; row < Layout.Length; row++)
             {
-                string line = Layout[row];
-                for (int col = 0; col < line.Length; col++)
+                for (int col = 0; col < Layout[row].Length; col++)
                 {
-                    if (line[col] == '#')
-                        tilemap.SetTile(new Vector3Int(OriginX + col, TopY - row, 0), tile);
+                    if (!IsSolid(col, row)) continue;
+
+                    int x = OriginX + col;
+                    int y = TopY - row;
+                    var cell = new Vector3Int(x, y, 0);
+
+                    // 금속판 무늬가 이어지도록 월드 좌표의 짝·홀에 맞춰 바탕 타일을 고른다
+                    ground.SetTile(cell, fills[Mod2(x) + Mod2(y) * 2]);
+
+                    int mask = (IsSolid(col, row - 1) ? 0 : EdgeTop)
+                        | (IsSolid(col + 1, row) ? 0 : EdgeRight)
+                        | (IsSolid(col, row + 1) ? 0 : EdgeBottom)
+                        | (IsSolid(col - 1, row) ? 0 : EdgeLeft);
+                    if (mask != 0)
+                        groundEdge.SetTile(cell, edges[mask]);
                 }
             }
 
-            tilemap.CompressBounds();
+            ground.CompressBounds();
+            groundEdge.CompressBounds();
+        }
+
+        // 맵 바깥은 막힌 것으로 본다 (방 외벽 바깥쪽에 테두리를 그리지 않도록)
+        static bool IsSolid(int col, int row)
+        {
+            if (row < 0 || row >= Layout.Length || col < 0 || col >= Layout[row].Length) return true;
+            return Layout[row][col] == '#';
+        }
+
+        static int Mod2(int value) => ((value % 2) + 2) % 2;
+
+        static Rect RoomBounds() => new(OriginX, TopY - Layout.Length + 1, Layout[0].Length, Layout.Length);
+
+        static void SetupBackground()
+        {
+            GameObject root = GameObject.Find("Background");
+            if (root == null)
+                root = new GameObject("Background");
+
+            Rect room = RoomBounds();
+            Transform cam = Camera.main.transform;
+
+            // 카메라가 방 끝까지 가도 빈 곳이 보이지 않도록 방 크기에 화면 두 개 분량을 더해 덮는다
+            float viewHeight = CameraSize * 2f;
+            var size = new Vector2(room.width + viewHeight * 16f / 9f * 2f, room.height + viewHeight * 2f);
+
+            // 뒤에서부터: 우주(거의 고정) → 별 두 겹 → 시설 벽(창문으로 우주가 보임)
+            SetupLayer(root.transform, "Space", LoadSpaceSprite("Nebula Blue.png"), size, 0.92f, -30, cam, room.center);
+            SetupLayer(root.transform, "StarsSmall", LoadSpaceSprite("Stars Small_1.png"), size, 0.9f, -29, cam, room.center);
+            SetupLayer(root.transform, "StarsBig", LoadSpaceSprite("Stars-Big_1.png"), size, 0.85f, -28, cam, room.center);
+            var wall = AssetDatabase.LoadAssetAtPath<Sprite>($"{EnvironmentArtFolder}Wall_Background.png");
+            SetupLayer(root.transform, "Wall", wall, size, 0.3f, -20, cam, room.center);
+        }
+
+        static void SetupLayer(Transform root, string name, Sprite sprite, Vector2 size, float factor, int sortingOrder, Transform cam, Vector2 anchor)
+        {
+            if (sprite == null)
+            {
+                Debug.LogWarning($"[TestRoomBuilder] 배경 '{name}' 그림이 없어 건너뜀");
+                return;
+            }
+
+            Transform layer = root.Find(name);
+            if (layer == null)
+            {
+                layer = new GameObject(name).transform;
+                layer.SetParent(root, false);
+            }
+            layer.position = anchor;
+
+            var renderer = GetOrAdd<SpriteRenderer>(layer.gameObject);
+            renderer.sprite = sprite;
+            renderer.drawMode = SpriteDrawMode.Tiled;
+            renderer.tileMode = SpriteTileMode.Continuous;
+            renderer.size = size;
+            renderer.sortingOrder = sortingOrder;
+
+            var parallax = GetOrAdd<ParallaxLayer>(layer.gameObject);
+            var serialized = new SerializedObject(parallax);
+            serialized.FindProperty("cameraTransform").objectReferenceValue = cam;
+            serialized.FindProperty("factor").floatValue = factor;
+            serialized.FindProperty("anchor").vector2Value = anchor;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // 우주 배경은 Asset Store 에셋을 직접 쓴다 (원본 재배포 금지라 저장소에는 없음).
+        // 반복 배치(Tiled)에 맞게 임포트 설정을 바꾼다
+        static Sprite LoadSpaceSprite(string fileName)
+        {
+            string path = SpaceArtFolder + fileName;
+            if (AssetImporter.GetAtPath(path) is not TextureImporter importer)
+            {
+                Debug.LogWarning($"[TestRoomBuilder] 우주 배경이 없습니다: {path} (Asset Store에서 Dynamic Space Background 임포트 필요)");
+                return null;
+            }
+
+            var settings = new TextureImporterSettings();
+            importer.ReadTextureSettings(settings);
+            if (settings.spriteMeshType != SpriteMeshType.FullRect || !Mathf.Approximately(importer.spritePixelsPerUnit, SpacePixelsPerUnit))
+            {
+                settings.spriteMeshType = SpriteMeshType.FullRect;
+                importer.SetTextureSettings(settings);
+                importer.spritePixelsPerUnit = SpacePixelsPerUnit;
+                importer.SaveAndReimport();
+            }
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
 
         static void SetupCameraFollow(PlayerMovement player)
@@ -222,9 +372,7 @@ namespace Platformer.EditorTools
             var follow = GetOrAdd<CameraFollow>(cam.gameObject);
 
             // 지형 전체를 카메라가 보여줄 수 있는 영역으로 쓴다
-            int width = Layout[0].Length;
-            int height = Layout.Length;
-            var bounds = new Rect(OriginX, TopY - height + 1, width, height);
+            Rect bounds = RoomBounds();
 
             var serialized = new SerializedObject(follow);
             serialized.FindProperty("settings").objectReferenceValue = LoadOrCreateAsset<CameraSettings>(CameraSettingsPath);
