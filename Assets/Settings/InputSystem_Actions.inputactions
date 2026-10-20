@@ -89,28 +89,6 @@
             ],
             "bindings": [
                 {
-                    "name": "",
-                    "id": "5c95fdc2-dfd4-45e2-b4b4-67d339c6ed05",
-                    "path": "<Gamepad>/leftStick",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Gamepad",
-                    "action": "Move",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "8112dfc6-a4ef-4c06-aaa9-0eb1703cd007",
-                    "path": "<Gamepad>/dpad",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Gamepad",
-                    "action": "Move",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
                     "name": "WASD",
                     "id": "c505df42-400a-4f2e-a4d7-7c6daadc2b8c",
                     "path": "2DVector",
@@ -178,33 +156,11 @@
                 },
                 {
                     "name": "",
-                    "id": "a17b7514-33c7-47a1-b3d1-0978c4ef4c49",
-                    "path": "<Gamepad>/buttonSouth",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Gamepad",
-                    "action": "Jump",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "1823c051-9234-4065-8d63-8e0b79a4b74e",
                     "path": "<Keyboard>/j",
                     "interactions": "",
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
-                    "action": "Fire",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "4f11f077-35c6-4b6f-aaaa-5c34547f1c39",
-                    "path": "<Gamepad>/buttonWest",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Gamepad",
                     "action": "Fire",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -222,33 +178,11 @@
                 },
                 {
                     "name": "",
-                    "id": "2cc894fd-8a2b-458e-9212-de0703945923",
-                    "path": "<Gamepad>/buttonEast",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Gamepad",
-                    "action": "Counter",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "f5053fae-d64f-41e5-8bc6-b9b3f5bb684a",
                     "path": "<Keyboard>/l",
                     "interactions": "",
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
-                    "action": "Missile",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "86f85818-8e35-4ab0-81c1-3a215587fc05",
-                    "path": "<Gamepad>/rightShoulder",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Gamepad",
                     "action": "Missile",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -266,28 +200,6 @@
                 },
                 {
                     "name": "",
-                    "id": "24638b15-8bee-4777-b1c1-19827b3fa57a",
-                    "path": "<Gamepad>/leftTrigger",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Gamepad",
-                    "action": "AimLock",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "c0362bd7-375a-4bcb-9ec2-920854e29844",
-                    "path": "<Gamepad>/rightTrigger",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Gamepad",
-                    "action": "AimLock",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "603a239e-2e6f-4b15-9dc8-011dd1da8dfe",
                     "path": "<Keyboard>/escape",
                     "interactions": "",
@@ -299,33 +211,11 @@
                 },
                 {
                     "name": "",
-                    "id": "fb2ce82d-8abf-43cb-bb37-58d14f2d4209",
-                    "path": "<Gamepad>/start",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Gamepad",
-                    "action": "Pause",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "2e10708c-3409-460d-b287-aeec2dceab3f",
                     "path": "<Keyboard>/tab",
                     "interactions": "",
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
-                    "action": "Map",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "ecaa032f-a4e2-4dc1-b396-1d38730d637b",
-                    "path": "<Gamepad>/select",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Gamepad",
                     "action": "Map",
                     "isComposite": false,
                     "isPartOfComposite": false

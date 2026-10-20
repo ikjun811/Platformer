@@ -4,6 +4,7 @@ Unity 2D 횡스크롤 플랫포머 게임 프로젝트.
 
 ## 환경
 - Unity 6000.3.26f1, URP 2D (Renderer2D)
+- 대상 플랫폼: **PC 키보드 전용** (마우스·게임패드 미사용 — 게임패드 대응 코드나 바인딩을 만들지 않는다)
 - 입력: 새 Input System 전용 — 프로젝트 전역 액션 `Assets/Settings/InputSystem_Actions.inputactions`
 - 설치 패키지: 2D Animation, Aseprite Importer, PSD Importer, SpriteShape, Tilemap (+Extras), Timeline, uGUI
 
