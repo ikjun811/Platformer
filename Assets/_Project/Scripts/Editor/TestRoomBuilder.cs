@@ -1,4 +1,5 @@
 using System.Linq;
+using Platformer.Gameplay;
 using Platformer.Player;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -23,6 +24,7 @@ namespace Platformer.EditorTools
         const string TilePath = "Assets/_Project/Art/Placeholder/Tile_Placeholder.asset";
         const string MovementSettingsPath = "Assets/_Project/Data/PlayerMovementSettings.asset";
         const string NoFrictionPath = "Assets/_Project/Data/NoFriction.physicsMaterial2D";
+        const string CameraSettingsPath = "Assets/_Project/Data/CameraSettings.asset";
 
         const int PixelsPerUnit = 16;
         const int ReferenceWidth = 320;
@@ -36,25 +38,38 @@ namespace Platformer.EditorTools
         static readonly Vector2 PlayerSize = new(0.75f, 2.25f);
         static readonly Vector2 PlayerSpawn = new(-7f, -4f + 2.25f * 0.5f);
 
-        // 테스트 룸 지형 (20x12 타일 = 1화면 방). '#' = Ground 타일, '.' = 빈칸
-        // 맨 윗줄이 y = 5, 맨 아랫줄이 y = -6, 왼쪽 끝이 x = -10
+        // 테스트 룸 지형 (40x24 타일 = 가로 2화면 x 세로 2화면). '#' = Ground 타일, '.' = 빈칸
+        // 맨 윗줄이 y = 17, 맨 아랫줄이 y = -6, 왼쪽 끝이 x = -10
+        // 아래층 왼쪽은 기존 지형, 오른쪽 계단 발판으로 위층 바닥 구멍(x = 18~23)을 지나 위층으로 올라간다
         static readonly string[] Layout =
         {
-            "#..................#",
-            "#..................#",
-            "#..................#",
-            "#..................#",
-            "#..................#",
-            "#...........####...#",
-            "#..................#",
-            "#...####...........#",
-            "#..................#",
-            "#..................#",
-            "####################",
-            "####################",
+            "########################################",  // y = 17 천장
+            "#......................................#",
+            "#......................................#",
+            "#......................................#",
+            "#...........####...............#####...#",  // y = 13
+            "#......................................#",
+            "#......................................#",
+            "#....#####..............####...........#",  // y = 10
+            "#................#####.................#",  // y = 9
+            "#......................................#",
+            "#......................................#",
+            "############################......######",  // y = 6 위층 바닥
+            "#......................................#",
+            "#............................####......#",  // y = 4
+            "#......................................#",
+            "#......................................#",
+            "#......................####............#",  // y = 1
+            "#...........####.......................#",  // y = 0
+            "#......................................#",
+            "#...####..........####.................#",  // y = -2
+            "#......................................#",
+            "#......................................#",
+            "########################################",  // y = -5 아래층 바닥
+            "########################################",  // y = -6
         };
         const int OriginX = -10;
-        const int TopY = 5;
+        const int TopY = 17;
 
         [MenuItem("Tools/Platformer/Build Test Room")]
         static void Build()
@@ -70,7 +85,8 @@ namespace Platformer.EditorTools
             SetupCamera();
             Tilemap ground = SetupGround();
             Paint(ground, tile);
-            SetupPlayer();
+            PlayerMovement player = SetupPlayer();
+            SetupCameraFollow(player);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
@@ -200,7 +216,34 @@ namespace Platformer.EditorTools
             tilemap.CompressBounds();
         }
 
-        static void SetupPlayer()
+        static void SetupCameraFollow(PlayerMovement player)
+        {
+            Camera cam = Camera.main;
+            var follow = GetOrAdd<CameraFollow>(cam.gameObject);
+
+            // 지형 전체를 카메라가 보여줄 수 있는 영역으로 쓴다
+            int width = Layout[0].Length;
+            int height = Layout.Length;
+            var bounds = new Rect(OriginX, TopY - height + 1, width, height);
+
+            var serialized = new SerializedObject(follow);
+            serialized.FindProperty("settings").objectReferenceValue = LoadOrCreateAsset<CameraSettings>(CameraSettingsPath);
+            serialized.FindProperty("target").objectReferenceValue = player;
+            serialized.FindProperty("bounds").rectValue = bounds;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        static T LoadOrCreateAsset<T>(string path) where T : ScriptableObject
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+            if (asset != null) return asset;
+
+            asset = ScriptableObject.CreateInstance<T>();
+            AssetDatabase.CreateAsset(asset, path);
+            return asset;
+        }
+
+        static PlayerMovement SetupPlayer()
         {
             PlayerMovement movement = Object.FindAnyObjectByType<PlayerMovement>();
             GameObject player = movement != null ? movement.gameObject : new GameObject("Player");
@@ -228,7 +271,7 @@ namespace Platformer.EditorTools
 
             // private [SerializeField] 필드는 SerializedObject로 설정한다
             var serialized = new SerializedObject(movement);
-            serialized.FindProperty("settings").objectReferenceValue = LoadOrCreateMovementSettings();
+            serialized.FindProperty("settings").objectReferenceValue = LoadOrCreateAsset<PlayerMovementSettings>(MovementSettingsPath);
             serialized.FindProperty("groundLayers").intValue = LayerMask.GetMask("Ground", "OneWay");
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
@@ -244,6 +287,8 @@ namespace Platformer.EditorTools
             var ledgeSerialized = new SerializedObject(ledgeGrab);
             ledgeSerialized.FindProperty("ledgeLayers").intValue = LayerMask.GetMask("Ground");
             ledgeSerialized.ApplyModifiedPropertiesWithoutUndo();
+
+            return movement;
         }
 
         static Transform SetupPlayerVisual(GameObject player)
@@ -263,16 +308,6 @@ namespace Platformer.EditorTools
             sprite.color = PlayerColor;
             sprite.sortingOrder = 10;
             return visual;
-        }
-
-        static PlayerMovementSettings LoadOrCreateMovementSettings()
-        {
-            var settings = AssetDatabase.LoadAssetAtPath<PlayerMovementSettings>(MovementSettingsPath);
-            if (settings != null) return settings;
-
-            settings = ScriptableObject.CreateInstance<PlayerMovementSettings>();
-            AssetDatabase.CreateAsset(settings, MovementSettingsPath);
-            return settings;
         }
 
         static PhysicsMaterial2D LoadOrCreateNoFriction()
