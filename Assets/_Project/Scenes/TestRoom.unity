@@ -222,7 +222,6 @@ GameObject:
   - component: {fileID: 519420031}
   - component: {fileID: 519420029}
   - component: {fileID: 519420030}
-  - component: {fileID: 519420033}
   - component: {fileID: 519420034}
   m_Layer: 0
   m_Name: Main Camera
@@ -349,30 +348,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &519420033
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 519420028}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c88f5cead0c0b2a4eb05b5900433f8d1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.2D.Runtime::UnityEngine.Rendering.Universal.PixelPerfectCamera
-  m_ComponentVersion: 1
-  m_AssetsPPU: 16
-  m_RefResolutionX: 320
-  m_RefResolutionY: 180
-  m_CropFrame: 0
-  m_GridSnapping: 2
-  m_FilterMode: 0
-  m_UpscaleRT: 0
-  m_PixelSnapping: 0
-  m_CropFrameX: 0
-  m_CropFrameY: 0
-  m_StretchFill: 0
 --- !u!114 &519420034
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3436,6 +3411,7 @@ GameObject:
   - component: {fileID: 1190876194}
   - component: {fileID: 1190876196}
   - component: {fileID: 1190876195}
+  - component: {fileID: 1190876197}
   m_Layer: 8
   m_Name: Player
   m_TagString: Player
@@ -3577,7 +3553,7 @@ MonoBehaviour:
   obstacleLayers:
     serializedVersion: 2
     m_Bits: 64
-  visual: {fileID: 1967489163}
+  visual: {fileID: 0}
 --- !u!114 &1190876193
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3637,6 +3613,56 @@ MonoBehaviour:
   m_EditorClassIdentifier: Platformer.Runtime::Platformer.Player.PlayerAim
   settings: {fileID: 11400000, guid: 1d119e1b4981b3547b99638ee681a3d4, type: 2}
   aimMarker: {fileID: 138962741}
+--- !u!114 &1190876197
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1190876186}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4960bdb16930424cb13f5589002d004, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Platformer.Runtime::Platformer.Player.PlayerAnimator
+  spriteRenderer: {fileID: 1967489164}
+  idle:
+    sheet: {fileID: 2800000, guid: b42028383d838bb429fedc4867ad3ef1, type: 3}
+    cellWidth: 384
+    pivotX: 192
+    framesPerSecond: 6
+  run:
+    sheet: {fileID: 2800000, guid: 040894f6cc986fd4e8fc2327961515e2, type: 3}
+    cellWidth: 384
+    pivotX: 192
+    framesPerSecond: 14
+  jump:
+    sheet: {fileID: 2800000, guid: 822ac3f528e0b144080aa4aa22584a33, type: 3}
+    cellWidth: 384
+    pivotX: 192
+    framesPerSecond: 0
+  crouch:
+    sheet: {fileID: 2800000, guid: f30f5b1f660865f4983e727e73e01b0d, type: 3}
+    cellWidth: 384
+    pivotX: 192
+    framesPerSecond: 0
+  slide:
+    sheet: {fileID: 2800000, guid: c0a37fee3bd40e341b55803766c2a6ae, type: 3}
+    cellWidth: 384
+    pivotX: 192
+    framesPerSecond: 10
+  ledgeHang:
+    sheet: {fileID: 2800000, guid: 78025741c1a9f384b9a642887481f459, type: 3}
+    cellWidth: 384
+    pivotX: 192
+    framesPerSecond: 0
+  ledgeClimb:
+    sheet: {fileID: 2800000, guid: 293e7373b9a711b48b7da00cc3fb065e, type: 3}
+    cellWidth: 512
+    pivotX: 192
+    framesPerSecond: 0
+  runSpeedThreshold: 0.5
+  jumpApexSpeed: 3
 --- !u!1 &1967489162
 GameObject:
   m_ObjectHideFlags: 0
@@ -3663,8 +3689,8 @@ Transform:
   m_GameObject: {fileID: 1967489162}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.75, y: 2.25, z: 1}
+  m_LocalPosition: {x: 0, y: -1.125, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1190876191}
@@ -3718,15 +3744,15 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 10
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 6042040895486326715, guid: b7a038e7343a5914db5201dd06a7b362, type: 3}
-  m_Color: {r: 0.9098039, g: 0.5137255, b: 0.22745098, a: 1}
+  m_Sprite: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

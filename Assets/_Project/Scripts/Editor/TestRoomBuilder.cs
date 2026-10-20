@@ -12,7 +12,7 @@ namespace Platformer.EditorTools
 {
     /// <summary>
     /// 메뉴 한 번으로 테스트 룸 씬을 만든다.
-    /// 카메라(Pixel Perfect) 설정 → Ground 타일맵 구성 → 텍스트 맵대로 타일 칠하기 → 저장.
+    /// 카메라 설정 → Ground 타일맵 구성 → 텍스트 맵대로 타일 칠하기 → 플레이어 구성 → 저장.
     /// 여러 번 실행해도 기존 오브젝트를 찾아 다시 설정하므로 안전하다.
     /// </summary>
     public static class TestRoomBuilder
@@ -26,14 +26,13 @@ namespace Platformer.EditorTools
         const string NoFrictionPath = "Assets/_Project/Data/NoFriction.physicsMaterial2D";
         const string CameraSettingsPath = "Assets/_Project/Data/CameraSettings.asset";
         const string CombatSettingsPath = "Assets/_Project/Data/PlayerCombatSettings.asset";
+        const string CharacterArtFolder = "Assets/_Project/Art/Characters/";
 
-        const int PixelsPerUnit = 16;
-        const int ReferenceWidth = 320;
-        const int ReferenceHeight = 180;
+        // 세로 11.25타일이 보이는 카메라 (GDD 5.1)
+        const float CameraSize = 5.625f;
 
         static readonly Color BackgroundColor = new Color32(0x1A, 0x1A, 0x2E, 0xFF);
         static readonly Color GroundColor = new Color32(0x6C, 0x7A, 0x89, 0xFF);
-        static readonly Color PlayerColor = new Color32(0xE8, 0x83, 0x3A, 0xFF);
 
         // 임시 플레이어: 12x36px. 바닥(y = -4) 위 왼쪽에 세운다
         static readonly Vector2 PlayerSize = new(0.75f, 2.25f);
@@ -151,16 +150,15 @@ namespace Platformer.EditorTools
             }
 
             cam.orthographic = true;
+            cam.orthographicSize = CameraSize;
             cam.transform.position = new Vector3(0f, 0f, -10f);
             cam.clearFlags = CameraClearFlags.SolidColor;
             cam.backgroundColor = BackgroundColor;
 
-            var ppc = GetOrAdd<PixelPerfectCamera>(cam.gameObject);
-            ppc.assetsPPU = PixelsPerUnit;
-            ppc.refResolutionX = ReferenceWidth;
-            ppc.refResolutionY = ReferenceHeight;
-            ppc.cropFrame = PixelPerfectCamera.CropFrame.None;
-            ppc.gridSnapping = PixelPerfectCamera.GridSnapping.UpscaleRenderTexture;
+            // 고해상도 일러스트로 전환하면서 Pixel Perfect Camera는 쓰지 않는다 (GDD 8장)
+            var ppc = cam.GetComponent<PixelPerfectCamera>();
+            if (ppc != null)
+                Object.DestroyImmediate(ppc);
         }
 
         static Tilemap SetupGround()
@@ -277,12 +275,13 @@ namespace Platformer.EditorTools
             serialized.FindProperty("groundLayers").intValue = LayerMask.GetMask("Ground", "OneWay");
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
-            Transform visual = SetupPlayerVisual(player);
+            SpriteRenderer visual = SetupPlayerVisual(player);
 
             var crouch = GetOrAdd<PlayerCrouch>(player);
             var crouchSerialized = new SerializedObject(crouch);
             crouchSerialized.FindProperty("obstacleLayers").intValue = LayerMask.GetMask("Ground");
-            crouchSerialized.FindProperty("visual").objectReferenceValue = visual;
+            // 앉기·슬라이드는 애니메이션 프레임으로 표시하므로 임시 세로 축소는 쓰지 않는다
+            crouchSerialized.FindProperty("visual").objectReferenceValue = null;
             crouchSerialized.ApplyModifiedPropertiesWithoutUndo();
 
             GetOrAdd<PlayerSlide>(player);
@@ -292,6 +291,8 @@ namespace Platformer.EditorTools
             var ledgeSerialized = new SerializedObject(ledgeGrab);
             ledgeSerialized.FindProperty("ledgeLayers").intValue = LayerMask.GetMask("Ground");
             ledgeSerialized.ApplyModifiedPropertiesWithoutUndo();
+
+            SetupPlayerAnimator(player, visual);
 
             return movement;
         }
@@ -328,7 +329,7 @@ namespace Platformer.EditorTools
             shooterSerialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        static Transform SetupPlayerVisual(GameObject player)
+        static SpriteRenderer SetupPlayerVisual(GameObject player)
         {
             Transform visual = player.transform.Find("Visual");
             if (visual == null)
@@ -337,14 +338,46 @@ namespace Platformer.EditorTools
                 visual.SetParent(player.transform, false);
             }
 
-            visual.localPosition = Vector3.zero;
-            visual.localScale = new Vector3(PlayerSize.x, PlayerSize.y, 1f);
+            // 위치(충돌체 바닥)와 스프라이트는 플레이 중에 PlayerAnimator가 정한다
+            visual.localPosition = new Vector3(0f, -PlayerSize.y * 0.5f, 0f);
+            visual.localScale = Vector3.one;
 
             var sprite = GetOrAdd<SpriteRenderer>(visual.gameObject);
-            sprite.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(SpritePath);
-            sprite.color = PlayerColor;
+            sprite.sprite = null;
+            sprite.color = Color.white;
             sprite.sortingOrder = 10;
-            return visual;
+            return sprite;
+        }
+
+        static void SetupPlayerAnimator(GameObject player, SpriteRenderer visual)
+        {
+            var animator = GetOrAdd<PlayerAnimator>(player);
+            var serialized = new SerializedObject(animator);
+            serialized.FindProperty("spriteRenderer").objectReferenceValue = visual;
+
+            // 시트는 Tools/ArtPipeline/process_sprites.py가 만든다. 칸 크기·초당 프레임은 그 스크립트의 설정과 맞춘다
+            SetClip(serialized, "idle", "Player_Idle", 384, 6f);
+            SetClip(serialized, "run", "Player_Run", 384, 14f);
+            SetClip(serialized, "jump", "Player_Jump", 384, 0f);
+            SetClip(serialized, "crouch", "Player_Crouch", 384, 0f);
+            SetClip(serialized, "slide", "Player_Slide", 384, 10f);
+            SetClip(serialized, "ledgeHang", "Player_LedgeHang", 384, 0f);
+            SetClip(serialized, "ledgeClimb", "Player_LedgeClimb", 512, 0f);
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        static void SetClip(SerializedObject animator, string field, string sheetName, int cellWidth, float framesPerSecond)
+        {
+            string path = $"{CharacterArtFolder}{sheetName}.png";
+            var sheet = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            if (sheet == null)
+                Debug.LogWarning($"[TestRoomBuilder] 캐릭터 시트를 찾을 수 없음: {path}");
+
+            SerializedProperty clip = animator.FindProperty(field);
+            clip.FindPropertyRelative("sheet").objectReferenceValue = sheet;
+            clip.FindPropertyRelative("cellWidth").intValue = cellWidth;
+            clip.FindPropertyRelative("pivotX").intValue = 192;
+            clip.FindPropertyRelative("framesPerSecond").floatValue = framesPerSecond;
         }
 
         static PhysicsMaterial2D LoadOrCreateNoFriction()

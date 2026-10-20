@@ -204,14 +204,17 @@
 - Unity 6000.3.26f1, URP 2D, 새 Input System
 - **게임 단위**: 1타일 = 1유닛. 충돌체와 이동 수치는 유닛 기준이다
 - **스프라이트**: PPU 128 (1타일 = 128px), Filter Mode = Bilinear, 압축 사용
-- **카메라**: 일반 Orthographic 카메라 (Size 5.625 = 세로 11.25타일). 기존 Pixel Perfect Camera는 아트 파이프라인 전환 작업 때 제거한다
+- **카메라**: 일반 Orthographic 카메라 (Size 5.625 = 세로 11.25타일). (Pixel Perfect Camera는 아트 파이프라인 전환 때 제거함)
 - **이동 수치 (드레드 기준 초기값)**: 최고 속도 9.5, 지상 가속·감속 150. 점프 높이는 3.5타일 유지 (5.4장 높이 기준과 연결). 슬라이드: 충돌체 높이 1.25타일, 속도 13, 0.4초, 시작 최소 속도 6
 - **레이어**: Ground, OneWay, Player, Enemy, PlayerProjectile, EnemyProjectile, Interactable, Room
 - **태그**: Player 외에는 쓰지 않는다. 판별은 컴포넌트와 레이어로 한다.
 - **밸런스 데이터**: ScriptableObject (`Assets/_Project/Data/`)
 - **저장**: JSON 파일 (`Application.persistentDataPath`)
 - **아트 제작**
-  - 캐릭터: AI 이미지 도구로 프레임마다 한 장씩 만든다 (부위 분리 애니메이션은 시간과 비용 때문에 쓰지 않는다). 사양은 별도 사양서로 정한다
+  - 캐릭터: AI 이미지 도구(Gemini)로 프레임마다 한 장씩 만든다 (부위 분리 애니메이션은 시간과 비용 때문에 쓰지 않는다). 명령서는 `Docs/ArtSamples/GeminiSpec.md`
+  - 처리: `python Tools/ArtPipeline/process_sprites.py`가 Gemini 원본(`Docs/ArtSamples/Gemini/make/`)의 배경을 지우고 크기·위치를 맞춰 `Assets/_Project/Art/Characters/`에 가로 시트로 저장한다
+  - 시트 규격: 칸 384x384 (기어오르기만 512x768), 서 있는 키 288px, 피벗 = 서 있을 때 충돌체 바닥 중앙 (칸 아래쪽 x 192)
+  - 재생: `PlayerAnimator`가 시트를 런타임에 잘라 상태별로 재생한다 (Animator Controller 미사용)
   - 타일, 배경, 소품: AI 이미지 도구로 만든다. 배경은 깊이감을 주는 여러 겹(패럴랙스)으로 구성한다
   - 프레임 사이 디자인 일관성은 기준 이미지 한 장을 정해 모든 생성의 참조로 쓰는 방식으로 맞춘다
 - **입력**: 기존 `InputSystem_Actions`를 3.3의 조작에 맞게 수정한다 (M0)
@@ -229,7 +232,7 @@ M1~M5는 사각형 같은 임시 도형으로 게임플레이를 먼저 완성�
 - [ ] **M4 능력 시스템**: 능력 획득 처리, 데이터 룸, 모프볼, 미사일, 이단 점프, 수집 아이템
 - [ ] **M5 UI**: HUD(에너지, 미사일), 지도, 일시정지, 수집률
 - [ ] **M6 1구역 제작**: 레벨 디자인, 적 3~4종, 보스, 아트 적용(고해상도 임포트 설정, 프레임 애니메이션, 패럴랙스 배경), 사운드
-  - 아트 파이프라인 전환(임포트 설정 변경, Pixel Perfect Camera 제거)은 첫 캐릭터 그림이 나오면 M6 전이라도 별도 작업으로 진행한다
+  - [x] 아트 파이프라인 전환 (임포트 설정, Pixel Perfect Camera 제거, 플레이어 이동 동작 7종 적용) — M2 진행 중에 먼저 진행함
 - [ ] **M7 폴리싱**: 연출, 타격감, 밸런스, 버그 수정
 
 ---

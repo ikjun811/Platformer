@@ -33,6 +33,14 @@ namespace Platformer.Player
         public bool IsHanging => state == State.Hanging;
         public bool IsClimbing => state == State.Climbing;
 
+        /// <summary>매달린 모서리 방향: 1(오른쪽), -1(왼쪽)</summary>
+        public int LedgeDirection => ledgeDirection;
+
+        /// <summary>기어오르기 진행도 0~1 (애니메이션용)</summary>
+        public float ClimbProgress => state == State.Climbing
+            ? Mathf.Clamp01(1f - (climbEndTime - Time.time) / movement.Settings.LedgeClimbDuration)
+            : 0f;
+
         void Reset()
         {
             ledgeLayers = LayerMask.GetMask("Ground");
@@ -162,7 +170,7 @@ namespace Platformer.Player
 
         void FinishClimb()
         {
-            // 임시: 순간 이동. 아트 적용 후 기어오르기 애니메이션으로 대체
+            // 기어오르기 애니메이션이 끝나는 자세(모서리 위에 섬)에서 설 위치로 순간 이동한다
             body.position = climbTarget;
             body.linearVelocity = Vector2.zero;
             state = State.None;
