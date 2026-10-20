@@ -33,6 +33,10 @@ namespace Platformer.Player
         [Tooltip("최대 낙하 속도 (타일/초)")]
         [SerializeField] float maxFallSpeed = 20f;
 
+        [Header("앉기")]
+        [Tooltip("앉았을 때 충돌체 높이 (타일). 서 있을 때 높이는 BoxCollider2D 크기를 따른다")]
+        [SerializeField] float crouchHeight = 1.5f;
+
         [Header("조작 보정")]
         [Tooltip("발판에서 떨어진 뒤에도 점프할 수 있는 시간 (초)")]
         [SerializeField] float coyoteTime = 0.1f;
@@ -47,6 +51,7 @@ namespace Platformer.Player
         public float FallGravityMultiplier => fallGravityMultiplier;
         public float JumpCutGravityMultiplier => jumpCutGravityMultiplier;
         public float MaxFallSpeed => maxFallSpeed;
+        public float CrouchHeight => crouchHeight;
         public float CoyoteTime => coyoteTime;
         public float JumpBufferTime => jumpBufferTime;
 

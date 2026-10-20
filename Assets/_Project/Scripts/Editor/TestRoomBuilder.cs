@@ -232,10 +232,16 @@ namespace Platformer.EditorTools
             serialized.FindProperty("groundLayers").intValue = LayerMask.GetMask("Ground", "OneWay");
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
-            SetupPlayerVisual(player);
+            Transform visual = SetupPlayerVisual(player);
+
+            var crouch = GetOrAdd<PlayerCrouch>(player);
+            var crouchSerialized = new SerializedObject(crouch);
+            crouchSerialized.FindProperty("obstacleLayers").intValue = LayerMask.GetMask("Ground");
+            crouchSerialized.FindProperty("visual").objectReferenceValue = visual;
+            crouchSerialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        static void SetupPlayerVisual(GameObject player)
+        static Transform SetupPlayerVisual(GameObject player)
         {
             Transform visual = player.transform.Find("Visual");
             if (visual == null)
@@ -251,6 +257,7 @@ namespace Platformer.EditorTools
             sprite.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(SpritePath);
             sprite.color = PlayerColor;
             sprite.sortingOrder = 10;
+            return visual;
         }
 
         static PlayerMovementSettings LoadOrCreateMovementSettings()

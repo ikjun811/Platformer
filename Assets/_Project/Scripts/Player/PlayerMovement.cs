@@ -18,6 +18,7 @@ namespace Platformer.Player
         Rigidbody2D body;
         BoxCollider2D box;
         PlayerInputReader input;
+        PlayerCrouch crouch;
 
         float lastGroundedTime = float.NegativeInfinity;
         bool isJumping;
@@ -29,6 +30,10 @@ namespace Platformer.Player
 
         public Vector2 Velocity => body.linearVelocity;
 
+        public PlayerMovementSettings Settings => settings;
+
+        bool IsCrouching => crouch != null && crouch.IsCrouching;
+
         void Reset()
         {
             groundLayers = LayerMask.GetMask("Ground", "OneWay");
@@ -39,6 +44,7 @@ namespace Platformer.Player
             body = GetComponent<Rigidbody2D>();
             box = GetComponent<BoxCollider2D>();
             input = GetComponent<PlayerInputReader>();
+            crouch = GetComponent<PlayerCrouch>();
 
             body.freezeRotation = true;
             body.interpolation = RigidbodyInterpolation2D.Interpolate;
@@ -81,8 +87,10 @@ namespace Platformer.Player
 
         void Run()
         {
-            float targetSpeed = input.Horizontal * settings.MaxSpeed;
-            bool accelerating = input.Horizontal != 0;
+            // 앉아 있는 동안은 수평 이동하지 않는다 (시리즈 방식)
+            int direction = IsCrouching ? 0 : input.Horizontal;
+            float targetSpeed = direction * settings.MaxSpeed;
+            bool accelerating = direction != 0;
 
             float rate = IsGrounded
                 ? (accelerating ? settings.GroundAcceleration : settings.GroundDeceleration)
@@ -98,6 +106,9 @@ namespace Platformer.Player
             bool jumpBuffered = Time.time - input.LastJumpPressedTime <= settings.JumpBufferTime;
             bool canJump = Time.time - lastGroundedTime <= settings.CoyoteTime;
             if (!jumpBuffered || !canJump) return;
+
+            // 앉은 채 머리 위가 막혀 일어서지 못했다면 점프하지 않는다
+            if (IsCrouching) return;
 
             Vector2 velocity = body.linearVelocity;
             velocity.y = settings.JumpVelocity;
