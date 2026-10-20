@@ -239,6 +239,11 @@ namespace Platformer.EditorTools
             crouchSerialized.FindProperty("obstacleLayers").intValue = LayerMask.GetMask("Ground");
             crouchSerialized.FindProperty("visual").objectReferenceValue = visual;
             crouchSerialized.ApplyModifiedPropertiesWithoutUndo();
+
+            var ledgeGrab = GetOrAdd<PlayerLedgeGrab>(player);
+            var ledgeSerialized = new SerializedObject(ledgeGrab);
+            ledgeSerialized.FindProperty("ledgeLayers").intValue = LayerMask.GetMask("Ground");
+            ledgeSerialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         static Transform SetupPlayerVisual(GameObject player)

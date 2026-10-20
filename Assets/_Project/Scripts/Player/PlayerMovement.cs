@@ -32,6 +32,11 @@ namespace Platformer.Player
 
         public PlayerMovementSettings Settings => settings;
 
+        /// <summary>
+        /// true인 동안 달리기·점프·중력 처리를 멈춘다 (난간 매달리기 등 다른 컴포넌트가 몸을 제어할 때).
+        /// </summary>
+        public bool ControlLocked { get; set; }
+
         bool IsCrouching => crouch != null && crouch.IsCrouching;
 
         void Reset()
@@ -59,6 +64,12 @@ namespace Platformer.Player
 
         void FixedUpdate()
         {
+            if (ControlLocked)
+            {
+                IsGrounded = false;
+                return;
+            }
+
             UpdateGrounded();
             Run();
             TryJump();
@@ -110,6 +121,14 @@ namespace Platformer.Player
             // 앉은 채 머리 위가 막혀 일어서지 못했다면 점프하지 않는다
             if (IsCrouching) return;
 
+            Jump();
+        }
+
+        /// <summary>땅에 있지 않아도 즉시 점프한다 (난간에서 점프 등).</summary>
+        public void ForceJump() => Jump();
+
+        void Jump()
+        {
             Vector2 velocity = body.linearVelocity;
             velocity.y = settings.JumpVelocity;
             body.linearVelocity = velocity;

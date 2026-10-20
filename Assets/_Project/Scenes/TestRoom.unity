@@ -1418,6 +1418,7 @@ GameObject:
   - component: {fileID: 1190876188}
   - component: {fileID: 1190876187}
   - component: {fileID: 1190876192}
+  - component: {fileID: 1190876193}
   m_Layer: 8
   m_Name: Player
   m_TagString: Player
@@ -1559,6 +1560,21 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   visual: {fileID: 1967489163}
+--- !u!114 &1190876193
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1190876186}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da14b680a1d432b44b8736015cc7758d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Platformer.Runtime::Platformer.Player.PlayerLedgeGrab
+  ledgeLayers:
+    serializedVersion: 2
+    m_Bits: 64
 --- !u!1 &1967489162
 GameObject:
   m_ObjectHideFlags: 0
