@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0626369acbbc03a4089a273af4451fe9, type: 3}
   m_Name: PlayerMovementSettings
   m_EditorClassIdentifier: Platformer.Runtime::Platformer.Player.PlayerMovementSettings
-  maxSpeed: 7
-  groundAcceleration: 80
-  groundDeceleration: 90
+  maxSpeed: 9.5
+  groundAcceleration: 150
+  groundDeceleration: 150
   airAcceleration: 50
   airDeceleration: 30
   jumpHeight: 3.5
@@ -22,5 +22,13 @@ MonoBehaviour:
   fallGravityMultiplier: 1.8
   jumpCutGravityMultiplier: 2.5
   maxFallSpeed: 20
+  crouchHeight: 1.5
+  slideHeight: 1.25
+  slideSpeed: 13
+  slideDuration: 0.4
+  slideMinStartSpeed: 6
+  ledgeGrabZone: 0.5
+  ledgeClimbDuration: 0.25
+  ledgeRegrabDelay: 0.25
   coyoteTime: 0.1
   jumpBufferTime: 0.12

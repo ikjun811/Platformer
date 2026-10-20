@@ -6,6 +6,8 @@ namespace Platformer.Player
     /// 토글 방식 앉기 (시리즈 방식).
     /// 땅에서 S를 누르면 앉은 채 유지되고, W·좌우·점프를 누르거나 공중에 뜨면 일어선다.
     /// 앉으면 충돌체 높이가 줄어들고 발 위치는 그대로 유지된다.
+    /// 빠르게 달리는 중에 S를 누르면 앉기 대신 슬라이드(PlayerSlide)가 시작된다.
+    /// 슬라이드 중에도 낮은 자세(IsCrouching)로 취급하고, 일어서는 시점은 PlayerSlide가 정한다.
     /// </summary>
     [RequireComponent(typeof(BoxCollider2D), typeof(PlayerMovement), typeof(PlayerInputReader))]
     public class PlayerCrouch : MonoBehaviour
@@ -18,6 +20,7 @@ namespace Platformer.Player
         BoxCollider2D box;
         PlayerMovement movement;
         PlayerInputReader input;
+        PlayerSlide slide;
 
         Vector2 standingSize;
         Vector2 standingOffset;
@@ -36,6 +39,7 @@ namespace Platformer.Player
             box = GetComponent<BoxCollider2D>();
             movement = GetComponent<PlayerMovement>();
             input = GetComponent<PlayerInputReader>();
+            slide = GetComponent<PlayerSlide>();
 
             standingSize = box.size;
             standingOffset = box.offset;
@@ -48,10 +52,18 @@ namespace Platformer.Player
 
         void Update()
         {
+            if (slide != null && slide.IsSliding) return;
+
+            // 제자리 조준 중에는 W·S·좌우가 조준에 쓰이므로 앉거나 일어서지 않는다
+            if (input.AimLockHeld) return;
+
             if (!IsCrouching)
             {
                 if (input.DownPressedThisFrame && movement.IsGrounded)
-                    Crouch();
+                {
+                    bool sliding = slide != null && slide.TryStart();
+                    EnterLowPosture(sliding ? movement.Settings.SlideHeight : movement.Settings.CrouchHeight);
+                }
                 return;
             }
 
@@ -65,10 +77,10 @@ namespace Platformer.Player
                 TryStand();
         }
 
-        void Crouch()
+        void EnterLowPosture(float height)
         {
             IsCrouching = true;
-            ApplyHeight(movement.Settings.CrouchHeight);
+            ApplyHeight(height);
         }
 
         /// <summary>머리 위가 비어 있으면 일어선다. 일어섰으면 true.</summary>

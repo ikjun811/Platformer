@@ -25,6 +25,7 @@ namespace Platformer.EditorTools
         const string MovementSettingsPath = "Assets/_Project/Data/PlayerMovementSettings.asset";
         const string NoFrictionPath = "Assets/_Project/Data/NoFriction.physicsMaterial2D";
         const string CameraSettingsPath = "Assets/_Project/Data/CameraSettings.asset";
+        const string CombatSettingsPath = "Assets/_Project/Data/PlayerCombatSettings.asset";
 
         const int PixelsPerUnit = 16;
         const int ReferenceWidth = 320;
@@ -41,6 +42,7 @@ namespace Platformer.EditorTools
         // 테스트 룸 지형 (40x24 타일 = 가로 2화면 x 세로 2화면). '#' = Ground 타일, '.' = 빈칸
         // 맨 윗줄이 y = 17, 맨 아랫줄이 y = -6, 왼쪽 끝이 x = -10
         // 아래층 왼쪽은 기존 지형, 오른쪽 계단 발판으로 위층 바닥 구멍(x = 18~23)을 지나 위층으로 올라간다
+        // y = -2 줄의 발판 아래는 높이 2타일 통로다 (서서는 못 지나가고 슬라이드로 통과). x = 16~23은 긴 슬라이드 통로
         static readonly string[] Layout =
         {
             "########################################",  // y = 17 천장
@@ -62,7 +64,7 @@ namespace Platformer.EditorTools
             "#......................####............#",  // y = 1
             "#...........####.......................#",  // y = 0
             "#......................................#",
-            "#...####..........####.................#",  // y = -2
+            "#...####..........####....########.....#",  // y = -2
             "#......................................#",
             "#......................................#",
             "########################################",  // y = -5 아래층 바닥
@@ -283,12 +285,47 @@ namespace Platformer.EditorTools
             crouchSerialized.FindProperty("visual").objectReferenceValue = visual;
             crouchSerialized.ApplyModifiedPropertiesWithoutUndo();
 
+            GetOrAdd<PlayerSlide>(player);
+            SetupPlayerCombat(player);
+
             var ledgeGrab = GetOrAdd<PlayerLedgeGrab>(player);
             var ledgeSerialized = new SerializedObject(ledgeGrab);
             ledgeSerialized.FindProperty("ledgeLayers").intValue = LayerMask.GetMask("Ground");
             ledgeSerialized.ApplyModifiedPropertiesWithoutUndo();
 
             return movement;
+        }
+
+        static void SetupPlayerCombat(GameObject player)
+        {
+            var combatSettings = LoadOrCreateAsset<PlayerCombatSettings>(CombatSettingsPath);
+            var placeholder = AssetDatabase.LoadAssetAtPath<Sprite>(SpritePath);
+
+            // 임시 조준 표시: 총구 위치를 보여주는 작은 사각형
+            Transform marker = player.transform.Find("AimMarker");
+            if (marker == null)
+            {
+                marker = new GameObject("AimMarker").transform;
+                marker.SetParent(player.transform, false);
+            }
+            marker.localScale = new Vector3(0.25f, 0.25f, 1f);
+            var markerSprite = GetOrAdd<SpriteRenderer>(marker.gameObject);
+            markerSprite.sprite = placeholder;
+            markerSprite.color = Color.white;
+            markerSprite.sortingOrder = 11;
+
+            var aim = GetOrAdd<PlayerAim>(player);
+            var aimSerialized = new SerializedObject(aim);
+            aimSerialized.FindProperty("settings").objectReferenceValue = combatSettings;
+            aimSerialized.FindProperty("aimMarker").objectReferenceValue = marker;
+            aimSerialized.ApplyModifiedPropertiesWithoutUndo();
+
+            var shooter = GetOrAdd<PlayerShooter>(player);
+            var shooterSerialized = new SerializedObject(shooter);
+            shooterSerialized.FindProperty("settings").objectReferenceValue = combatSettings;
+            shooterSerialized.FindProperty("hitLayers").intValue = LayerMask.GetMask("Ground", "Enemy");
+            shooterSerialized.FindProperty("beamSprite").objectReferenceValue = placeholder;
+            shooterSerialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         static Transform SetupPlayerVisual(GameObject player)

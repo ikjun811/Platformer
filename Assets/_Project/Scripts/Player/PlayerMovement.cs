@@ -19,6 +19,8 @@ namespace Platformer.Player
         BoxCollider2D box;
         PlayerInputReader input;
         PlayerCrouch crouch;
+        PlayerSlide slide;
+        PlayerAim aim;
 
         float lastGroundedTime = float.NegativeInfinity;
         bool isJumping;
@@ -38,6 +40,8 @@ namespace Platformer.Player
         public bool ControlLocked { get; set; }
 
         bool IsCrouching => crouch != null && crouch.IsCrouching;
+        bool IsSliding => slide != null && slide.IsSliding;
+        bool IsAimLocked => aim != null && aim.IsAimLocked;
 
         void Reset()
         {
@@ -50,6 +54,8 @@ namespace Platformer.Player
             box = GetComponent<BoxCollider2D>();
             input = GetComponent<PlayerInputReader>();
             crouch = GetComponent<PlayerCrouch>();
+            slide = GetComponent<PlayerSlide>();
+            aim = GetComponent<PlayerAim>();
 
             body.freezeRotation = true;
             body.interpolation = RigidbodyInterpolation2D.Interpolate;
@@ -58,7 +64,9 @@ namespace Platformer.Player
 
         void Update()
         {
-            if (input.Horizontal != 0)
+            if (IsSliding)
+                FacingDirection = slide.Direction;
+            else if (input.Horizontal != 0)
                 FacingDirection = input.Horizontal;
         }
 
@@ -71,7 +79,9 @@ namespace Platformer.Player
             }
 
             UpdateGrounded();
-            Run();
+            // 슬라이드 중에는 PlayerSlide가 수평 속도를 정한다
+            if (!IsSliding)
+                Run();
             TryJump();
             ApplyGravity();
         }
@@ -98,8 +108,9 @@ namespace Platformer.Player
 
         void Run()
         {
-            // 앉아 있는 동안은 수평 이동하지 않는다 (시리즈 방식)
-            int direction = IsCrouching ? 0 : input.Horizontal;
+            // 앉아 있거나 땅에서 제자리 조준 중이면 수평 이동하지 않는다 (방향 전환만 한다)
+            bool rooted = IsCrouching || (IsAimLocked && IsGrounded);
+            int direction = rooted ? 0 : input.Horizontal;
             float targetSpeed = direction * settings.MaxSpeed;
             bool accelerating = direction != 0;
 
@@ -118,7 +129,7 @@ namespace Platformer.Player
             bool canJump = Time.time - lastGroundedTime <= settings.CoyoteTime;
             if (!jumpBuffered || !canJump) return;
 
-            // 앉은 채 머리 위가 막혀 일어서지 못했다면 점프하지 않는다
+            // 앉은 채(슬라이드 포함) 머리 위가 막혀 일어서지 못했다면 점프하지 않는다
             if (IsCrouching) return;
 
             Jump();
