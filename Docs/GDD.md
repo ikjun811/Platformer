@@ -105,7 +105,8 @@
 - 맵은 여러 방으로 나뉘고, 방은 문으로 연결된다.
 - 카메라는 방 경계 안에서만 움직인다.
 - 방 사이를 이동할 때 짧은 화면 전환 효과를 넣는다.
-- 방 크기 기준: 1화면 = 가로 **24타일**, 세로 **14타일** (16px 기준 384x224px)
+- 화면 크기: 가로 20타일 x 세로 11.25타일 (320x180px)
+- 방 크기 기준: 1화면짜리 방 = **20x12타일**. 세로로 넘치는 0.75타일만큼은 카메라가 살짝 스크롤한다. 큰 방은 이 크기의 배수로 만든다.
 
 ### 5.2 문
 | 종류 | 여는 방법 |
@@ -175,7 +176,7 @@
 
 - Unity 6000.3.26f1, URP 2D, 새 Input System
 - **픽셀 기준**: PPU 16, Filter Mode = Point, Compression = None
-- **카메라**: Pixel Perfect Camera, 기준 해상도 384x224 (1080p 화면에서 정수 배율)
+- **카메라**: Pixel Perfect Camera, 기준 해상도 **320x180** (720p 4배, 1080p 6배, 1440p 8배, 4K 12배로 모두 정수 배율)
 - **레이어**: Ground, OneWay, Player, Enemy, PlayerProjectile, EnemyProjectile, Interactable, Room
 - **태그**: Player 외에는 쓰지 않는다. 판별은 컴포넌트와 레이어로 한다.
 - **밸런스 데이터**: ScriptableObject (`Assets/_Project/Data/`)

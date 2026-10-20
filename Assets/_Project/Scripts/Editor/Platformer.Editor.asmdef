@@ -2,7 +2,8 @@
     "name": "Platformer.Editor",
     "rootNamespace": "Platformer.EditorTools",
     "references": [
-        "Platformer.Runtime"
+        "Platformer.Runtime",
+        "Unity.RenderPipelines.Universal.2D.Runtime"
     ],
     "includePlatforms": [
         "Editor"
