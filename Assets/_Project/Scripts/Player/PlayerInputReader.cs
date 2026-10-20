@@ -42,6 +42,9 @@ namespace Platformer.Player
 
         public bool FireHeld { get; private set; }
 
+        /// <summary>이번 프레임에 사격(J)을 뗐는지 (차지 빔 발사용)</summary>
+        public bool FireReleasedThisFrame { get; private set; }
+
         /// <summary>제자리 조준(Left Shift)을 누르고 있는지</summary>
         public bool AimLockHeld { get; private set; }
 
@@ -84,6 +87,7 @@ namespace Platformer.Player
 
             FireHeld = fireAction.IsPressed();
             FirePressedThisFrame = fireAction.WasPressedThisFrame();
+            FireReleasedThisFrame = fireAction.WasReleasedThisFrame();
             AimLockHeld = aimLockAction.IsPressed();
         }
 

@@ -26,6 +26,8 @@ namespace Platformer.EditorTools
         const string NoFrictionPath = "Assets/_Project/Data/NoFriction.physicsMaterial2D";
         const string CameraSettingsPath = "Assets/_Project/Data/CameraSettings.asset";
         const string CombatSettingsPath = "Assets/_Project/Data/PlayerCombatSettings.asset";
+        const string HurtSettingsPath = "Assets/_Project/Data/PlayerHurtSettings.asset";
+        const string HazardTilePath = "Assets/_Project/Art/Placeholder/Tile_Hazard.asset";
         const string CharacterArtFolder = "Assets/_Project/Art/Characters/";
         const string EnvironmentArtFolder = "Assets/_Project/Art/Environment/";
         const string TileFolder = "Assets/_Project/Art/Environment/Tiles";
@@ -41,12 +43,19 @@ namespace Platformer.EditorTools
         const float CameraSize = 5.625f;
 
         static readonly Color BackgroundColor = new Color32(0x1A, 0x1A, 0x2E, 0xFF);
+        static readonly Color HazardColor = new Color32(0xD6, 0x45, 0x4E, 0xFF);
+        static readonly Color DamageDummyColor = new Color32(0xB0, 0x5C, 0xE0, 0xFF);
+
+        // 시험용 피해 설정 (가시 = 환경 피해, 상자 = 넉백 확인용 일반 피해)
+        const int HazardDamage = 15;
+        const int DummyDamage = 10;
 
         // 임시 플레이어: 12x36px. 바닥(y = -4) 위 왼쪽에 세운다
         static readonly Vector2 PlayerSize = new(0.75f, 2.25f);
         static readonly Vector2 PlayerSpawn = new(-7f, -4f + 2.25f * 0.5f);
 
         // 테스트 룸 지형 (40x24 타일 = 가로 2화면 x 세로 2화면). '#' = Ground 타일, '.' = 빈칸
+        // '^' = 가시(환경 피해, 임시 빨간 타일), 'D' = 시험용 피해 상자(넉백 확인용, 임시 보라색 상자)
         // 맨 윗줄이 y = 17, 맨 아랫줄이 y = -6, 왼쪽 끝이 x = -10
         // 아래층 왼쪽은 기존 지형, 오른쪽 계단 발판으로 위층 바닥 구멍(x = 18~23)을 지나 위층으로 올라간다
         // y = -2 줄의 발판 아래는 높이 2타일 통로다 (서서는 못 지나가고 슬라이드로 통과). x = 16~23은 긴 슬라이드 통로
@@ -62,7 +71,7 @@ namespace Platformer.EditorTools
             "#....#####..............####...........#",  // y = 10
             "#................#####.................#",  // y = 9
             "#......................................#",
-            "#......................................#",
+            "#...........^^^.....................D..#",  // y = 7 가시, 피해 상자
             "############################......######",  // y = 6 위층 바닥
             "#......................................#",
             "#............................####......#",  // y = 4
@@ -94,6 +103,7 @@ namespace Platformer.EditorTools
             Tilemap ground = SetupGround();
             Tilemap groundEdge = SetupGroundEdge(ground);
             Paint(ground, groundEdge, fills, edges);
+            SetupTestHazards(ground.GetComponentInParent<Grid>());
             SetupBackground();
             PlayerMovement player = SetupPlayer();
             SetupCameraFollow(player);
@@ -289,6 +299,80 @@ namespace Platformer.EditorTools
 
         static int Mod2(int value) => ((value % 2) + 2) % 2;
 
+        // 가시('^')는 트리거 타일맵 하나로, 피해 상자('D')는 칸마다 상자 오브젝트로 만든다.
+        // 둘 다 EnemyProjectile 레이어: 플레이어와만 닿고 플레이어 빔은 통과한다
+        static void SetupTestHazards(Grid grid)
+        {
+            int hazardLayer = LayerMask.NameToLayer("EnemyProjectile");
+
+            Transform hazardTransform = grid.transform.Find("Hazard");
+            if (hazardTransform == null)
+            {
+                hazardTransform = new GameObject("Hazard").transform;
+                hazardTransform.SetParent(grid.transform, false);
+            }
+            GameObject hazard = hazardTransform.gameObject;
+            hazard.layer = hazardLayer;
+
+            var tilemap = GetOrAdd<Tilemap>(hazard);
+            tilemap.color = HazardColor;
+            GetOrAdd<TilemapRenderer>(hazard);
+            GetOrAdd<TilemapCollider2D>(hazard).isTrigger = true;
+            SetDamageZone(GetOrAdd<DamageZone>(hazard), HazardDamage, true);
+
+            var hazardTile = AssetDatabase.LoadAssetAtPath<Tile>(HazardTilePath);
+            if (hazardTile == null)
+            {
+                hazardTile = ScriptableObject.CreateInstance<Tile>();
+                hazardTile.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(SpritePath);
+                hazardTile.colliderType = Tile.ColliderType.Grid;
+                AssetDatabase.CreateAsset(hazardTile, HazardTilePath);
+            }
+
+            // 피해 상자는 매번 새로 만든다
+            GameObject dummies = GameObject.Find("TestDamageDummies");
+            if (dummies != null)
+                Object.DestroyImmediate(dummies);
+            dummies = new GameObject("TestDamageDummies");
+
+            tilemap.ClearAllTiles();
+            var placeholder = AssetDatabase.LoadAssetAtPath<Sprite>(SpritePath);
+            for (int row = 0; row < Layout.Length; row++)
+            {
+                for (int col = 0; col < Layout[row].Length; col++)
+                {
+                    var cell = new Vector3Int(OriginX + col, TopY - row, 0);
+                    if (Layout[row][col] == '^')
+                    {
+                        tilemap.SetTile(cell, hazardTile);
+                    }
+                    else if (Layout[row][col] == 'D')
+                    {
+                        var dummy = new GameObject("DamageDummy") { layer = hazardLayer };
+                        dummy.transform.SetParent(dummies.transform, false);
+                        dummy.transform.position = new Vector3(cell.x + 0.5f, cell.y + 0.5f, 0f);
+
+                        var sprite = dummy.AddComponent<SpriteRenderer>();
+                        sprite.sprite = placeholder;
+                        sprite.color = DamageDummyColor;
+                        sprite.sortingOrder = 5;
+
+                        dummy.AddComponent<BoxCollider2D>().size = Vector2.one;
+                        SetDamageZone(dummy.AddComponent<DamageZone>(), DummyDamage, false);
+                    }
+                }
+            }
+            tilemap.CompressBounds();
+        }
+
+        static void SetDamageZone(DamageZone zone, int damage, bool isHazard)
+        {
+            var serialized = new SerializedObject(zone);
+            serialized.FindProperty("damage").intValue = damage;
+            serialized.FindProperty("isHazard").boolValue = isHazard;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         static Rect RoomBounds() => new(OriginX, TopY - Layout.Length + 1, Layout[0].Length, Layout.Length);
 
         static void SetupBackground()
@@ -441,6 +525,7 @@ namespace Platformer.EditorTools
             ledgeSerialized.ApplyModifiedPropertiesWithoutUndo();
 
             SetupPlayerAnimator(player, visual);
+            SetupPlayerHurt(player, visual);
 
             return movement;
         }
@@ -463,6 +548,18 @@ namespace Platformer.EditorTools
             markerSprite.color = Color.white;
             markerSprite.sortingOrder = 11;
 
+            // 임시 충전 표시: 차지 빔을 충전하는 동안 총구에서 커지는 사각형
+            Transform charge = player.transform.Find("ChargeEffect");
+            if (charge == null)
+            {
+                charge = new GameObject("ChargeEffect").transform;
+                charge.SetParent(player.transform, false);
+            }
+            var chargeSprite = GetOrAdd<SpriteRenderer>(charge.gameObject);
+            chargeSprite.sprite = placeholder;
+            chargeSprite.sortingOrder = 21;
+            chargeSprite.enabled = false;
+
             var aim = GetOrAdd<PlayerAim>(player);
             var aimSerialized = new SerializedObject(aim);
             aimSerialized.FindProperty("settings").objectReferenceValue = combatSettings;
@@ -474,6 +571,7 @@ namespace Platformer.EditorTools
             shooterSerialized.FindProperty("settings").objectReferenceValue = combatSettings;
             shooterSerialized.FindProperty("hitLayers").intValue = LayerMask.GetMask("Ground", "Enemy");
             shooterSerialized.FindProperty("beamSprite").objectReferenceValue = placeholder;
+            shooterSerialized.FindProperty("chargeEffect").objectReferenceValue = chargeSprite;
             shooterSerialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -495,6 +593,18 @@ namespace Platformer.EditorTools
             sprite.color = Color.white;
             sprite.sortingOrder = 10;
             return sprite;
+        }
+
+        static void SetupPlayerHurt(GameObject player, SpriteRenderer visual)
+        {
+            GetOrAdd<Health>(player);
+
+            var hurt = GetOrAdd<PlayerHurt>(player);
+            var serialized = new SerializedObject(hurt);
+            serialized.FindProperty("settings").objectReferenceValue = LoadOrCreateAsset<PlayerHurtSettings>(HurtSettingsPath);
+            serialized.FindProperty("blinkTarget").objectReferenceValue = visual;
+            serialized.FindProperty("hazardLayers").intValue = LayerMask.GetMask("EnemyProjectile");
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         static void SetupPlayerAnimator(GameObject player, SpriteRenderer visual)

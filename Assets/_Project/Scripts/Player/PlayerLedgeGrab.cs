@@ -177,6 +177,13 @@ namespace Platformer.Player
             movement.ControlLocked = false;
         }
 
+        /// <summary>매달리기·기어오르기를 즉시 끝낸다 (피격 등).</summary>
+        public void CancelHang()
+        {
+            if (state != State.None)
+                Release();
+        }
+
         void Release()
         {
             state = State.None;

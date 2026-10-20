@@ -7,8 +7,8 @@ Asset Store 표준 라이선스(Standard Unity Asset Store EULA)를 따른다. �
 
 | 에셋 | 제작자 | 출처 | 위치 | 쓰는 곳 |
 |---|---|---|---|---|
-| Dynamic Space Background | DinV | (확인 필요: Asset Store 주소) | `Assets/DinV/` | 우주 배경 (원본을 그대로 반복 배치) |
-| Sci-Fi Texture Pack 2 | (확인 필요) | (확인 필요: Asset Store 주소) | `Assets/Sci-Fi Texture Pack 2/` | 지형 타일·배경 벽의 원재료. `Tools/ArtPipeline/make_environment.py`로 축소·색 입힘·테두리 추가·창문 가공한 결과만 `Assets/_Project/Art/Environment/`에 둔다 |
+| Dynamic Space Background Lite | DinV | https://assetstore.unity.com/packages/2d/textures-materials/dynamic-space-background-lite-104606 | `Assets/DinV/` | 우주 배경 (원본을 그대로 반복 배치) |
+| Sci-Fi Texture Pack 2 | Asset Store 페이지 참고 | https://assetstore.unity.com/packages/2d/textures-materials/sci-fi-texture-pack-2-42026 | `Assets/Sci-Fi Texture Pack 2/` | 지형 타일·배경 벽의 원재료. `Tools/ArtPipeline/make_environment.py`로 축소·색 입힘·테두리 추가·창문 가공한 결과만 `Assets/_Project/Art/Environment/`에 둔다 |
 
 ## AI 생성 이미지
 | 대상 | 도구 | 비고 |

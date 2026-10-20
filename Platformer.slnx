@@ -1,4 +1,5 @@
 ﻿<Solution>
   <Project Path="Platformer.Runtime.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
   <Project Path="Platformer.Editor.csproj" />
 </Solution>

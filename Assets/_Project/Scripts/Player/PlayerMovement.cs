@@ -24,6 +24,7 @@ namespace Platformer.Player
 
         float lastGroundedTime = float.NegativeInfinity;
         bool isJumping;
+        float stunEndTime;
 
         public bool IsGrounded { get; private set; }
 
@@ -38,6 +39,9 @@ namespace Platformer.Player
         /// true인 동안 달리기·점프·중력 처리를 멈춘다 (난간 매달리기 등 다른 컴포넌트가 몸을 제어할 때).
         /// </summary>
         public bool ControlLocked { get; set; }
+
+        /// <summary>피격 경직 중인지. 경직 중에는 달리기·점프 입력을 받지 않지만 중력과 착지는 그대로 처리한다</summary>
+        public bool IsStunned => Time.time < stunEndTime;
 
         bool IsCrouching => crouch != null && crouch.IsCrouching;
         bool IsSliding => slide != null && slide.IsSliding;
@@ -79,10 +83,11 @@ namespace Platformer.Player
             }
 
             UpdateGrounded();
-            // 슬라이드 중에는 PlayerSlide가 수평 속도를 정한다
-            if (!IsSliding)
+            // 슬라이드 중에는 PlayerSlide가, 경직 중에는 넉백이 수평 속도를 정한다
+            if (!IsSliding && !IsStunned)
                 Run();
-            TryJump();
+            if (!IsStunned)
+                TryJump();
             ApplyGravity();
         }
 
@@ -133,6 +138,22 @@ namespace Platformer.Player
             if (IsCrouching) return;
 
             Jump();
+        }
+
+        /// <summary>일정 시간 달리기·점프 입력을 막는다.</summary>
+        public void Stun(float duration)
+        {
+            stunEndTime = Mathf.Max(stunEndTime, Time.time + duration);
+        }
+
+        /// <summary>넉백: 속도를 바꾸고 경직시킨다. 공중으로 띄우므로 코요테 점프와 가변 점프는 끊는다.</summary>
+        public void ApplyKnockback(Vector2 velocity, float stunDuration)
+        {
+            body.linearVelocity = velocity;
+            isJumping = false;
+            IsGrounded = false;
+            lastGroundedTime = float.NegativeInfinity;
+            Stun(stunDuration);
         }
 
         /// <summary>땅에 있지 않아도 즉시 점프한다 (난간에서 점프 등).</summary>
