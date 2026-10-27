@@ -10,9 +10,9 @@ namespace Platformer.Player
     {
         [Header("대시")]
         [Tooltip("대시 한 번에 이동하는 거리 (타일)")]
-        [SerializeField] float distance = 1.5f;
+        [SerializeField] float distance = 1.95f;
         [Tooltip("대시 한 번에 걸리는 시간 (초)")]
-        [SerializeField] float duration = 0.1f;
+        [SerializeField] float duration = 0.13f;
         [Tooltip("대시가 끝난 뒤에도 피해를 무시하는 시간 (초)")]
         [SerializeField] float evadeGrace = 0.05f;
 

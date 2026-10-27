@@ -17,7 +17,7 @@ namespace Platformer.EditorTools
 {
     /// <summary>
     /// 메뉴 한 번으로 GDD v2 테스트 씬(TestArena)을 만든다.
-    /// marsh-sci-fi 타일로 30x12타일 2층 소탕 방을 칠하고, 얇은 발판(OneWay)·계단·플레이어·임시 적·픽셀 카메라를 배치한다.
+    /// marsh-sci-fi 타일로 30x12타일 2층 소탕 방을 칠하고, 얇은 발판(OneWay)·계단·플레이어·러너·픽셀 카메라를 배치한다.
     /// 씬 안의 생성 오브젝트(Grid, Walkways, Player, TestEnemies)는 실행할 때마다 지우고 다시 만든다.
     /// 수치 SO는 Data/V2에 없을 때만 새 크기 기준 임시값으로 만들고, 이미 있으면 건드리지 않는다 (N1에서 조정한 값 보호).
     /// </summary>
@@ -29,17 +29,17 @@ namespace Platformer.EditorTools
         const string TileAssetFolder = "Assets/_Project/Art/Tiles/TileAssets";
         const string PropsFolder = "Assets/_Project/Art/Props/";
         const string MarineFolder = "Assets/_Project/Art/Characters/Marine/";
+        const string EnemyArtFolder = "Assets/_Project/Art/Enemies/";
         const string PlaceholderSpritePath = "Assets/_Project/Art/Placeholder/Placeholder_Tile.png";
         const string NoFrictionPath = "Assets/_Project/Data/NoFriction.physicsMaterial2D";
         const string DataFolder = "Assets/_Project/Data/V2";
 
         static readonly Color BackgroundColor = new Color32(0x0A, 0x08, 0x14, 0xFF);
-        static readonly Color EnemyColor = new Color32(0xE0, 0x86, 0x2E, 0xFF);
 
         // 해병 키 약 40px, 몸통 폭 약 20px (GDD v2 8장)
         static readonly Vector2 PlayerSize = new(0.3125f, 0.625f);
-        // 임시 적: 러너 몸길이·키에 맞춘 상자 (N3에서 러너로 교체)
-        static readonly Vector2 EnemySize = new(1.2f, 0.6f);
+        // 러너 충돌체: 웅크린 몸통 크기 (외계 생물 그림 몸통 약 60 x 45px)
+        static readonly Vector2 RunnerSize = new(0.9f, 0.7f);
 
         // 얇은 발판 그림(32x32)에서 위쪽 13px만 판이다
         const float WalkwayThickness = 13f / 64f;
@@ -47,7 +47,7 @@ namespace Platformer.EditorTools
         // 30x12타일. 맨 윗줄이 y = 11, 맨 아랫줄이 y = 0, 왼쪽 끝이 x = 0
         // '#' = 벽·바닥·천장 (위치에 따라 그림을 고른다), '.' = 빈칸 (배경만)
         // '=' = 얇은 발판. 그 칸의 윗면이 발판 윗면이다 (y = 3 줄이면 윗면 y = 4)
-        // 'S' = 계단 블록 8칸 한 묶음, 'P' = 플레이어 시작, 'E' = 임시 적
+        // 'S' = 계단 블록 8칸 한 묶음, 'P' = 플레이어 시작, 'E' = 러너
         // 바닥 윗면 y = 2, 발판 윗면 y = 4 / 6 / 8 (한 층 2타일, GDD 5.3)
         static readonly string[] Layout =
         {
@@ -56,7 +56,7 @@ namespace Platformer.EditorTools
             "#............................#",  // y = 9
             "#............................#",  // y = 8
             "#..======....................#",  // y = 7 발판 (윗면 8)
-            "#............................#",  // y = 6
+            "#..............E.............#",  // y = 6 가운데 발판 위 (러너)
             "#.........==========.........#",  // y = 5 발판 (윗면 6)
             "#............................#",  // y = 4
             "#=========...........========#",  // y = 3 발판 (윗면 4)
@@ -476,14 +476,22 @@ namespace Platformer.EditorTools
             clip.FindPropertyRelative("framesPerSecond").floatValue = framesPerSecond;
         }
 
-        // ───────── 임시 적 ─────────
+        // ───────── 적 ─────────
 
+        // 'E' 표식마다 E1 러너를 하나씩 세운다
         static void BuildTestEnemies()
         {
             var root = new GameObject("TestEnemies").transform;
-            var enemy = new GameObject("EnemyPatrol") { layer = RequireLayer("Enemy") };
+            var settings = LoadRunnerSettings();
+            foreach (Vector2 marker in FindMarkers('E'))
+                CreateRunner(root, marker, settings);
+        }
+
+        static void CreateRunner(Transform root, Vector2 feet, EnemyRunnerSettings settings)
+        {
+            var enemy = new GameObject("Runner") { layer = RequireLayer("Enemy") };
             enemy.transform.SetParent(root, false);
-            enemy.transform.position = FindMarker('E') + new Vector2(0f, EnemySize.y * 0.5f);
+            enemy.transform.position = feet + new Vector2(0f, RunnerSize.y * 0.5f);
 
             var body = enemy.AddComponent<Rigidbody2D>();
             // 플레이어가 밀어도 잘 밀리지 않도록 무겁게, 벽에 붙어 멈추지 않도록 마찰 0
@@ -491,28 +499,52 @@ namespace Platformer.EditorTools
             body.gravityScale = 3f;
             body.interpolation = RigidbodyInterpolation2D.Interpolate;
             body.sharedMaterial = LoadOrCreateNoFriction();
-            enemy.AddComponent<BoxCollider2D>().size = EnemySize;
+            enemy.AddComponent<BoxCollider2D>().size = RunnerSize;
 
+            // 그림 피벗(발)을 충돌체 바닥에 맞춘다. 실루엣은 몸 그림 바로 위에 겹친다
             SpriteRenderer sprite = CreateChildSprite(enemy, "Visual", "Characters");
-            sprite.transform.localScale = new Vector3(EnemySize.x, EnemySize.y, 1f);
-            sprite.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(PlaceholderSpritePath);
-            sprite.color = EnemyColor;
+            sprite.transform.localPosition = new Vector3(0f, -RunnerSize.y * 0.5f, 0f);
+            SpriteRenderer overlay = CreateChildSprite(enemy, "Overlay", "Characters");
+            overlay.transform.localPosition = sprite.transform.localPosition;
+            overlay.sortingOrder = 1;
+            overlay.enabled = false;
 
             enemy.AddComponent<Health>();
-            var settings = LoadEnemyPatrolSettings();
             Configure(enemy.AddComponent<Enemy>(), s =>
             {
                 s.FindProperty("settings").objectReferenceValue = settings;
-                s.FindProperty("spriteRenderer").objectReferenceValue = sprite;
+                // 몸 그림은 실루엣으로 번쩍이므로 색 번쩍임은 쓰지 않는다
+                s.FindProperty("spriteRenderer").objectReferenceValue = null;
                 s.FindProperty("contactTargets").intValue = LayerMask.GetMask("Player");
             });
-            Configure(enemy.AddComponent<EnemyPatrol>(), s =>
+            Configure(enemy.AddComponent<EnemyRunner>(), s =>
             {
                 s.FindProperty("settings").objectReferenceValue = settings;
                 s.FindProperty("groundLayers").intValue = LayerMask.GetMask("Ground", "OneWay");
-                s.FindProperty("startDirection").intValue = -1;
+                s.FindProperty("targetLayers").intValue = LayerMask.GetMask("Player");
                 s.FindProperty("spriteRenderer").objectReferenceValue = sprite;
+                s.FindProperty("overlayRenderer").objectReferenceValue = overlay;
+                SetEnemyClip(s, "idle", "Runner", "Idle", 3f);
+                SetEnemyClip(s, "run", "Runner", "Run", 12f);
+                SetEnemyClip(s, "bite", "Runner", "Bite", 0f);
+                SetEnemyClip(s, "die", "Runner", "Die", 10f);
             });
+        }
+
+        // 외계 생물 계열 시트는 칸 128x64, 발 중앙 x = 64
+        static void SetEnemyClip(SerializedObject component, string field, string enemyName, string clipName, float framesPerSecond)
+        {
+            string basePath = $"{EnemyArtFolder}{enemyName}/{enemyName}_{clipName}";
+            var sheet = AssetDatabase.LoadAssetAtPath<Texture2D>($"{basePath}.png");
+            if (sheet == null)
+                Debug.LogWarning($"[TestArenaBuilder] 적 시트가 없습니다: {basePath}.png");
+
+            SerializedProperty clip = component.FindProperty(field);
+            clip.FindPropertyRelative("sheet").objectReferenceValue = sheet;
+            clip.FindPropertyRelative("whiteSheet").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Texture2D>($"{basePath}_White.png");
+            clip.FindPropertyRelative("cellWidth").intValue = 128;
+            clip.FindPropertyRelative("pivotX").intValue = 64;
+            clip.FindPropertyRelative("framesPerSecond").floatValue = framesPerSecond;
         }
 
         // ───────── 카메라 ─────────
@@ -654,9 +686,10 @@ namespace Platformer.EditorTools
             s.FindProperty("verticalOffset").floatValue = 0.5f;
         });
 
-        static EnemyPatrolSettings LoadEnemyPatrolSettings() => LoadOrCreate<EnemyPatrolSettings>("EnemyPatrolSettings", s =>
+        // 러너는 물기(카운터 대상)가 주 공격이므로 몸 접촉 피해는 낮게 둔다
+        static EnemyRunnerSettings LoadRunnerSettings() => LoadOrCreate<EnemyRunnerSettings>("EnemyRunnerSettings", s =>
         {
-            s.FindProperty("moveSpeed").floatValue = 1.5f;
+            s.FindProperty("contactDamage").intValue = 5;
         });
 
         static T LoadOrCreate<T>(string fileName, Action<SerializedObject> defaults) where T : ScriptableObject
@@ -691,6 +724,21 @@ namespace Platformer.EditorTools
             var renderer = child.AddComponent<SpriteRenderer>();
             renderer.sortingLayerName = sortingLayer;
             return renderer;
+        }
+
+        // 표식 칸마다 바닥 중앙 (월드 좌표)
+        static System.Collections.Generic.List<Vector2> FindMarkers(char marker)
+        {
+            var result = new System.Collections.Generic.List<Vector2>();
+            for (int row = 0; row < Height; row++)
+            {
+                for (int x = 0; x < Width; x++)
+                {
+                    if (Layout[row][x] == marker)
+                        result.Add(new Vector2(x + 0.5f, TopY - row));
+                }
+            }
+            return result;
         }
 
         // 표식 칸의 바닥 중앙 (월드 좌표)

@@ -14,9 +14,12 @@ namespace Platformer.Enemies
         [SerializeField] int contactDamage = 10;
         [Tooltip("피해를 받았을 때 하얗게 번쩍이는 시간 (초)")]
         [SerializeField] float hitFlashTime = 0.08f;
+        [Tooltip("죽은 뒤 사라지기까지 걸리는 시간 (초). 이 동안 사망 동작을 보여준다")]
+        [SerializeField] float deathDuration = 0.5f;
 
         public int MaxHealth => maxHealth;
         public int ContactDamage => contactDamage;
         public float HitFlashTime => hitFlashTime;
+        public float DeathDuration => deathDuration;
     }
 }

@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 132ce7be52b6e1f41a92a8b856940015, type: 3}
+  m_Name: EnemyRunnerSettings
+  m_EditorClassIdentifier: Platformer.Runtime::Platformer.Enemies.EnemyRunnerSettings
+  maxHealth: 30
+  contactDamage: 5
+  hitFlashTime: 0.08
+  deathDuration: 0.5
+  detectRange: 6
+  detectHeight: 1.5
+  chaseSpeed: 3.2
+  attackRange: 0.5
+  windupTime: 0.5
+  signalTime: 0.2
+  lungeSpeed: 6
+  lungeTime: 0.15
+  biteDamage: 15
+  biteSize: {x: 0.5, y: 0.5}
+  recoverTime: 0.6
