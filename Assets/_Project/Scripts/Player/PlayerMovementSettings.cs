@@ -33,6 +33,14 @@ namespace Platformer.Player
         [Tooltip("최대 낙하 속도 (타일/초)")]
         [SerializeField] float maxFallSpeed = 20f;
 
+        [Header("낮은 턱")]
+        [Tooltip("이 높이 이하의 단차는 점프 없이 걸어서 오르내린다 (타일). 계단 한 칸 = 0.125")]
+        [SerializeField] float maxStepHeight = 0.15f;
+
+        [Header("발판 내려가기")]
+        [Tooltip("아래 + 점프로 얇은 발판을 내려갈 때 그 발판을 무시하는 시간 (초)")]
+        [SerializeField] float dropThroughTime = 0.25f;
+
         [Header("조작 보정")]
         [Tooltip("발판에서 떨어진 뒤에도 점프할 수 있는 시간 (초)")]
         [SerializeField] float coyoteTime = 0.1f;
@@ -47,6 +55,8 @@ namespace Platformer.Player
         public float FallGravityMultiplier => fallGravityMultiplier;
         public float JumpCutGravityMultiplier => jumpCutGravityMultiplier;
         public float MaxFallSpeed => maxFallSpeed;
+        public float MaxStepHeight => maxStepHeight;
+        public float DropThroughTime => dropThroughTime;
         public float CoyoteTime => coyoteTime;
         public float JumpBufferTime => jumpBufferTime;
 

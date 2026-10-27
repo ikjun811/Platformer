@@ -13,11 +13,17 @@ namespace Platformer.Gameplay
         [SerializeField] int maxHealth = 10;
 
         float invulnerableUntil;
+        float evadingUntil;
 
         public int Current { get; private set; }
         public int Max => maxHealth;
         public bool IsDead => Current <= 0;
+
+        /// <summary>피격 후 무적 중인지 (깜빡임 표시 대상)</summary>
         public bool IsInvulnerable => Time.time < invulnerableUntil;
+
+        /// <summary>회피 무적 중인지 (대시 등). 피해는 무시하지만 깜빡임은 표시하지 않는다</summary>
+        public bool IsEvading => Time.time < evadingUntil;
 
         /// <summary>피해를 받은 직후 (Current는 이미 줄어든 값)</summary>
         public event Action<DamageInfo> Damaged;
@@ -38,7 +44,7 @@ namespace Platformer.Gameplay
 
         public bool TakeDamage(in DamageInfo damage)
         {
-            if (IsDead || IsInvulnerable || damage.Amount <= 0) return false;
+            if (IsDead || IsInvulnerable || IsEvading || damage.Amount <= 0) return false;
 
             Current = Mathf.Max(0, Current - damage.Amount);
             Damaged?.Invoke(damage);
@@ -50,6 +56,11 @@ namespace Platformer.Gameplay
         public void SetInvulnerable(float duration)
         {
             invulnerableUntil = Mathf.Max(invulnerableUntil, Time.time + duration);
+        }
+
+        public void SetEvading(float duration)
+        {
+            evadingUntil = Mathf.Max(evadingUntil, Time.time + duration);
         }
 
         public void RestoreFull()

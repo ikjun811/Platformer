@@ -12,25 +12,18 @@
 - 수정 내용 (`Tools/ArtPipeline/convert_marsh.py`): 캐릭터 프레임을 가로 시트로 합침, 모든 캐릭터에 1px 외곽선 추가, 적 색 변형(브루트, 폭발체, 감염 병사), 흰 실루엣·관통탄·폭발 이펙트 생성. 체력 조각 아이콘은 새로 그림
 - 비상업 조건이므로 판매·유료 배포·광고 수익 등 상업적 이용은 하지 않는다.
 
-## Unity Asset Store 에셋
-> GDD v2(2026-10-27)부터 쓰지 않는다. 정리(N0) 후 이 표에서 뺀다.
+## 사용 중단한 에셋 (GDD v1, 2026-10-27 프로젝트에서 삭제)
+v1 기록 보관용. 게임에는 포함되지 않는다.
 
-Asset Store 표준 라이선스(Standard Unity Asset Store EULA)를 따른다. 게임에 포함해 배포하는 것은 허용되지만 원본 파일 재배포는 금지이므로, 원본 폴더는 저장소에서 제외한다(`.gitignore`). 다른 PC에서는 Asset Store에서 다시 임포트한다.
-
-| 에셋 | 제작자 | 출처 | 위치 | 쓰는 곳 |
-|---|---|---|---|---|
-| Dynamic Space Background Lite | DinV | https://assetstore.unity.com/packages/2d/textures-materials/dynamic-space-background-lite-104606 | `Assets/DinV/` | 우주 배경 (원본을 그대로 반복 배치) |
-| Sci-Fi Texture Pack 2 | Asset Store 페이지 참고 | https://assetstore.unity.com/packages/2d/textures-materials/sci-fi-texture-pack-2-42026 | `Assets/Sci-Fi Texture Pack 2/` | 지형 타일·배경 벽의 원재료. `Tools/ArtPipeline/make_environment.py`로 축소·색 입힘·테두리 추가·창문 가공한 결과만 `Assets/_Project/Art/Environment/`에 둔다 |
-| Sci-Fi GUI Skin | Asset Store 페이지 참고 | https://assetstore.unity.com/packages/2d/gui/sci-fi-gui-skin-15606 | `Assets/Sci-Fi UI/` | HUD·메뉴 그림 (M5에서 가공해 `Assets/_Project/Art/UI/`에 둔다). 데모 폴더는 삭제함 |
-
-## AI 생성 이미지
-> GDD v1의 플레이어 아트. v2에서 교체된다.
-
-| 대상 | 도구 | 비고 |
+| 에셋 | 출처 | 비고 |
 |---|---|---|
-| 플레이어 캐릭터 | Google Gemini (이미지 생성) | 명령서 `Docs/ArtSamples/GeminiSpec.md`. 생성 결과의 이용 조건은 Google 약관을 따른다 |
+| Dynamic Space Background Lite (DinV) | Unity Asset Store | 우주 배경 |
+| Sci-Fi Texture Pack 2 | Unity Asset Store | 지형 타일 원재료 |
+| Sci-Fi GUI Skin (Zekton 폰트 포함) | Unity Asset Store | 일부 파일이 저장소에 커밋된 적이 있음 (git 기록에 남아 있음) |
+| 2D Space Backgrounds | 출처 기록 없음 | 저장소에 커밋된 적이 있음 |
+| 플레이어 캐릭터 (Google Gemini 생성) | AI 생성 | 명령서·원본은 `Docs/ArtSamples/` |
 
 ## 폰트
-| 폰트 | 제작자 | 포함된 곳 | 라이선스 |
-|---|---|---|---|
-| Zekton (free) | Typodermic | Sci-Fi GUI Skin | 확인 필요 (원작자 라이선스가 따로 적용될 수 있음). 한글 글리프 없음 |
+| 폰트 | 제작자 | 라이선스 |
+|---|---|---|
+| (미정) | | UI 폰트는 N5 전에 결정한다. 한글 지원 픽셀 폰트 필요 |

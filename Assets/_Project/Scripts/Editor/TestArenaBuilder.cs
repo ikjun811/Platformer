@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using Platformer.Enemies;
 using Platformer.Gameplay;
@@ -204,13 +205,67 @@ namespace Platformer.EditorTools
                     char c = Layout[row][x];
                     var cell = new Vector3Int(x, y, 0);
                     if (c == '#')
+                    {
                         tilemap.SetTile(cell, GetTile(SolidCode(x, y), grid));
+                    }
                     else if (c == 'S')
-                        // 계단은 그림 모양(계단꼴)대로 충돌한다
-                        tilemap.SetTile(cell, GetTile($"Stair/Stair_{StairSequence[stairIndex++ % StairSequence.Length]}", UnityEngine.Tilemaps.Tile.ColliderType.Sprite));
+                    {
+                        // 계단 타일은 그림만 그리고, 충돌은 픽셀 단위 상자로 따로 만든다
+                        string sprite = $"Stair/Stair_{StairSequence[stairIndex++ % StairSequence.Length]}";
+                        tilemap.SetTile(cell, GetTile(sprite, UnityEngine.Tilemaps.Tile.ColliderType.None));
+                        AddStairColliders(tilemap.gameObject, cell, sprite);
+                    }
                 }
             }
             tilemap.CompressBounds();
+        }
+
+        // 자동 생성 물리 모양은 꼭짓점을 줄이느라 8px 계단 모서리를 비스듬하게 뭉갤 수 있다 (턱 넘기가 걸리는 원인).
+        // 그림의 열마다 불투명한 높이를 재서, 높이가 같은 열끼리 상자 하나로 묶는다.
+        // 상자는 지형 타일맵의 자식이라 CompositeCollider2D가 지형과 하나로 합친다
+        static void AddStairColliders(GameObject ground, Vector3Int cell, string spritePath)
+        {
+            string path = $"{TileArtFolder}{spritePath}.png";
+            // 임포트 설정(Read/Write 꺼짐)과 상관없이 픽셀을 읽기 위해 PNG 파일을 직접 연다
+            var texture = new Texture2D(2, 2);
+            if (!texture.LoadImage(File.ReadAllBytes(path)))
+            {
+                Debug.LogError($"[TestArenaBuilder] 계단 그림을 읽을 수 없습니다: {path}");
+                Object.DestroyImmediate(texture);
+                return;
+            }
+
+            int size = texture.width;
+            var heights = new int[size];
+            for (int x = 0; x < size; x++)
+            {
+                for (int y = texture.height - 1; y >= 0; y--)
+                {
+                    if (texture.GetPixel(x, y).a <= 0f) continue;
+                    heights[x] = y + 1;
+                    break;
+                }
+            }
+            Object.DestroyImmediate(texture);
+
+            int layer = ground.layer;
+            int start = 0;
+            for (int x = 1; x <= size; x++)
+            {
+                if (x < size && heights[x] == heights[start]) continue;
+
+                int h = heights[start];
+                if (h > 0)
+                {
+                    var step = new GameObject($"Step_{cell.x}_{start}") { layer = layer };
+                    step.transform.SetParent(ground.transform, false);
+                    var box = step.AddComponent<BoxCollider2D>();
+                    box.compositeOperation = Collider2D.CompositeOperation.Merge;
+                    box.size = new Vector2((x - start) / (float)size, h / (float)size);
+                    box.offset = new Vector2(cell.x + (start + x) * 0.5f / size, cell.y + h * 0.5f / size);
+                }
+                start = x;
+            }
         }
 
         static string SolidCode(int x, int y)
@@ -361,7 +416,7 @@ namespace Platformer.EditorTools
             Configure(player.AddComponent<PlayerAnimator>(), s =>
             {
                 s.FindProperty("spriteRenderer").objectReferenceValue = visual;
-                // 점프 전용 그림이 없어 달리기 시트를 임시로 쓴다 (GDD 3.3: 점프는 run_3 고정 — N1)
+                // 점프 전용 그림이 없어 달리기 시트의 한 프레임(run_3)을 고정해서 쓴다 (GDD 3.3, PlayerAnimator.jumpFrame)
                 SetClip(s, "idle", "Marine_Idle", 4f);
                 SetClip(s, "run", "Marine_Run", 12f);
                 SetClip(s, "jump", "Marine_Run", 0f);
@@ -373,6 +428,13 @@ namespace Platformer.EditorTools
                 s.FindProperty("settings").objectReferenceValue = LoadHurtSettings();
                 s.FindProperty("blinkTarget").objectReferenceValue = visual;
                 s.FindProperty("hazardLayers").intValue = LayerMask.GetMask("EnemyProjectile");
+            });
+
+            Configure(player.AddComponent<PlayerDash>(), s =>
+            {
+                s.FindProperty("settings").objectReferenceValue = LoadDashSettings();
+                s.FindProperty("visual").objectReferenceValue = visual;
+                s.FindProperty("passThroughLayers").intValue = LayerMask.GetMask("Enemy");
             });
 
             return movement;
@@ -496,7 +558,8 @@ namespace Platformer.EditorTools
             s.FindProperty("airAcceleration").floatValue = 25f;
             s.FindProperty("airDeceleration").floatValue = 15f;
             s.FindProperty("jumpHeight").floatValue = 2.2f;
-            s.FindProperty("timeToApex").floatValue = 0.35f;
+            s.FindProperty("timeToApex").floatValue = 0.45f;
+            s.FindProperty("fallGravityMultiplier").floatValue = 1.5f;
             s.FindProperty("maxFallSpeed").floatValue = 12f;
         });
 
@@ -515,6 +578,9 @@ namespace Platformer.EditorTools
             s.FindProperty("chargeBeamLength").floatValue = 0.88f;
             s.FindProperty("chargeBeamThickness").floatValue = 0.16f;
         });
+
+        // 대시 수치는 클래스 기본값이 이미 새 크기 기준이다 (GDD 4.4)
+        static PlayerDashSettings LoadDashSettings() => LoadOrCreate<PlayerDashSettings>("PlayerDashSettings", _ => { });
 
         static PlayerHurtSettings LoadHurtSettings() => LoadOrCreate<PlayerHurtSettings>("PlayerHurtSettings", s =>
         {
@@ -608,7 +674,8 @@ namespace Platformer.EditorTools
 
         static void AddToBuildSettings()
         {
-            var scenes = EditorBuildSettings.scenes.Where(s => s.path != ScenePath).ToList();
+            // 지워진 씬(이전 TestRoom 등)은 목록에서 뺀다
+            var scenes = EditorBuildSettings.scenes.Where(s => s.path != ScenePath && AssetExists(s.path)).ToList();
             scenes.Insert(0, new EditorBuildSettingsScene(ScenePath, true));
             EditorBuildSettings.scenes = scenes.ToArray();
         }

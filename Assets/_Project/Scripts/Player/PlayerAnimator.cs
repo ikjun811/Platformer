@@ -50,13 +50,13 @@ namespace Platformer.Player
         [SerializeField] SpriteRenderer spriteRenderer;
         [SerializeField] Clip idle = new();
         [SerializeField] Clip run = new();
-        [Tooltip("0 상승, 1 최고점, 2 낙하 시작, 3 낙하")]
+        [Tooltip("공중에 있는 동안 보여줄 시트")]
         [SerializeField] Clip jump = new();
+        [Tooltip("공중에 있는 동안 고정해서 보여줄 프레임 번호 (GDD 3.3: 달리기 시트의 run_3 = 2)")]
+        [SerializeField] int jumpFrame = 2;
 
         [Tooltip("이 속도(타일/초)보다 빠르게 움직이면 달리기 동작")]
         [SerializeField] float runSpeedThreshold = 0.5f;
-        [Tooltip("공중 프레임 기준 속도 (타일/초). 이보다 빠르게 오르면 상승, 느리면 최고점, 이 3배보다 빠르게 떨어지면 낙하")]
-        [SerializeField] float jumpApexSpeed = 3f;
 
         PlayerMovement movement;
 
@@ -104,14 +104,9 @@ namespace Platformer.Player
         // 현재 동작(current)에서 보여줄 프레임 번호
         int SelectFrame()
         {
+            // 전용 점프 그림이 없어 한 프레임을 고정해서 보여준다
             if (current == jump)
-            {
-                float vy = movement.Velocity.y;
-                if (vy > jumpApexSpeed) return 0;
-                if (vy > -jumpApexSpeed) return 1;
-                if (vy > -jumpApexSpeed * 3f) return 2;
-                return 3;
-            }
+                return jumpFrame;
 
             int step = Mathf.FloorToInt(clipTime * current.FramesPerSecond);
 

@@ -18,9 +18,11 @@ MonoBehaviour:
   airAcceleration: 25
   airDeceleration: 15
   jumpHeight: 2.2
-  timeToApex: 0.35
-  fallGravityMultiplier: 1.8
+  timeToApex: 0.45
+  fallGravityMultiplier: 1.5
   jumpCutGravityMultiplier: 2.5
   maxFallSpeed: 12
+  maxStepHeight: 0.15
+  dropThroughTime: 0.25
   coyoteTime: 0.1
   jumpBufferTime: 0.12

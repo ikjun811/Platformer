@@ -36,7 +36,8 @@
 |---|---|
 | 달리기 | 좌우 이동. 바라보는 방향이 곧 사격 방향이다 |
 | 점프 | 가변 점프, 코요테 타임, 점프 입력 버퍼 (기존 구현 유지) |
-| 발판 내려가기 | 얇은 발판(OneWay) 위에서 S + Space로 아래로 떨어진다 |
+| 발판 내려가기 | 얇은 발판(OneWay) 위에서 S + Space로 아래로 떨어진다 (그 발판을 0.25초 무시). 단단한 바닥에서는 평소처럼 점프한다 |
+| 낮은 턱 넘기 | 계단 같은 낮은 단차(0.15타일 이하, 계단 한 칸 = 8px)는 점프 없이 걸어서 오르내린다. 단단한 지형(Ground)만 해당 |
 | 사격 | **좌우 수평으로만** 쏜다. 무기 모듈과 과열은 4장 |
 | 페이즈 대시 | 짧은 거리를 순간 이동하듯 돌진한다. 대시 중에는 무적이고 적을 통과한다. **3번까지 연속으로** 쓸 수 있다 (4.4) |
 | 카운터 | 적이 공격 전에 신호를 보낼 때 맞춰 반격한다 (4.5) |
@@ -107,8 +108,10 @@
 - 대시 중에는 **무적**이고 적과 적의 탄을 통과한다. 벽은 통과하지 못한다.
 - **연속 3회**: 대시 사이 간격이 짧으면 최대 3번까지 이어서 쓸 수 있다. 3번을 다 쓰거나 연결 시간이 지나면 재사용 대기 시간이 시작되고, 끝나면 3회가 모두 충전된다.
 - 땅과 공중 모두 쓸 수 있다. 공중에서는 대시하는 동안 중력을 받지 않는다.
-- 초기값 (테스트하며 조정): 거리 2.5타일, 시간 0.1초, 연결 시간 0.4초, 재사용 대기 1.2초
-- 수치는 `PlayerMovementSettings` 또는 새 대시 설정 SO
+- 초기값 (테스트하며 조정): 거리 1.5타일 (화면 가로 10타일 기준으로 2.5에서 줄임), 시간 0.1초, 연결 시간 0.4초, 재사용 대기 1.2초
+- 무적은 피격 무적과 따로 둔 **회피 무적**(`Health.SetEvading`)이라 깜빡이지 않는다. 대시가 끝난 뒤 0.05초까지 유지된다
+- 적 통과는 대시 중에만 플레이어 몸에서 Enemy 레이어를 제외하는 방식(`Rigidbody2D.excludeLayers`)이다
+- 수치는 `PlayerDashSettings` (`Data/V2/PlayerDashSettings.asset`)
 
 ### 4.5 카운터
 - 근접형 적은 공격하기 직전에 **신호**를 보낸다. 몸이 빛나고 예비 동작(외계 생물 `bite_1~2`)을 한다.
@@ -203,7 +206,7 @@
 - **스프라이트**: PPU 64, Filter Mode = Point, 압축 없음, 피벗 = 발 중앙 (캐릭터) / 왼쪽 아래 (타일)
 - **카메라**: Pixel Perfect Camera, 기준 해상도 **640x360** (가로 10타일 x 세로 5.625타일). 720p 2배, 1080p 3배, 1440p 4배, 4K 6배로 정수 확대된다. Crop Frame = Windowbox (정수배가 아닌 창에서는 검은 테두리로 보이는 범위를 유지), Grid Snapping = Pixel Snapping. 메뉴 `Tools/Platformer/Setup/Pixel Perfect Camera (Current Scene)`
 - **캐릭터 크기 참고**: 해병 키 약 41px(0.64타일), 외계 생물 몸길이 약 110px(1.7타일)
-- **이동 수치**: 이전 수치(키 2.25타일 기준)는 쓰지 않는다. 새 수치 SO는 `Assets/_Project/Data/V2/`에 있다. N0 임시값: 최고 속도 4.5, 지상 가감속 60, 점프 2.2타일 (최고점 0.35초), 최대 낙하 12. N1에서 조정한다
+- **이동 수치**: 이전 수치(키 2.25타일 기준)는 쓰지 않는다. 새 수치 SO는 `Assets/_Project/Data/V2/`에 있다. N1 조정값 (2026-10-27): 최고 속도 4.5, 지상 가감속 60, 점프 2.2타일 (최고점 0.45초, 낙하 중력 1.5배), 최대 낙하 12. 대시 1.5타일. 달리기·대시 거리는 사용자 확인 완료, 점프는 "높이 적당·속도 빠름" 피드백으로 체공 시간을 늘림
 - **플레이어 충돌체**: 0.3125 x 0.625타일 (20 x 40px)
 - **테스트 씬**: `Assets/_Project/Scenes/TestArena.unity`. 메뉴 `Tools/Platformer/Build Test Arena`가 30x12타일 2층 방(바닥 + 얇은 발판 윗면 4·6·8 + 계단)을 만든다
 - **레이어**: Ground, OneWay, Player, Enemy, PlayerProjectile, EnemyProjectile, Interactable, Room (유지). 파괴 오브젝트용 레이어 추가는 N4에서 검토한다 (Project Settings 변경이라 승인 필요)
@@ -230,7 +233,8 @@
 | 유지 | `PlayerInputReader`, `PlayerMovement`, `CameraFollow`, `Health`, `DamageInfo`, `DamageZone`, `PlayerHurt`, `Projectile`, `Enemy`, `EnemyPatrol`, 각 Settings SO, `ParallaxLayer` |
 | 수정 | `PlayerShooter` (수평 전용 — 완료 / 과열, 모듈 — N2), `PlayerAnimator` (앉기·슬라이드·난간 동작 삭제 — 완료 / 새 프레임 — N1), `PixelArtImporter` (PPU 64·Point — 완료), 입력 액션 (3.2 — 완료) |
 | 제거 (완료) | `PlayerAim` (사격 방향·총구 위치는 `PlayerShooter`로 옮김), `PlayerLedgeGrab`, `PlayerCrouch`, `PlayerSlide`, `TestRoomBuilder` (v1 테스트 방. 새 테스트 씬 빌더로 대체) |
-| 교체 | 이전 고해상도 플레이어 아트, 지형 타일, 패럴랙스 배경, `Tools/ArtPipeline` |
+| 삭제 (완료) | 이전 고해상도 플레이어 아트(`Characters/Player_*`), `Art/Environment/`, `TestRoom.unity`, 이전 수치 SO(`Data/*.asset`), Asset Store 팩(DinV, Sci-Fi Texture Pack 2, Sci-Fi UI), `2D Space Backgrounds`, 예전 아트 스크립트(`make_environment.py`, `make_templates.py`, `process_sprites.py`) |
+| 남겨 둔 것 | `Assets/Scenes/SampleScene.unity` (TestArena 씬 템플릿), `Art/Placeholder/` (임시 그래픽), `Data/NoFriction`, `Docs/ArtSamples/` (v1 아트 기록) |
 
 ---
 
@@ -238,15 +242,15 @@
 
 이전 M0~M2에서 만든 기반(입력, 이동, 카메라, 체력·피격, 투사체, 적 기본형)을 이어 쓴다.
 
-- [ ] **N0 전환 정리**: 에셋 정리(원본을 `Docs/ArtSources/`로 이동, `__MACOSX`·zip 삭제 — 완료), 에셋 변환과 임포트 설정(`convert_marsh.py`, PPU 64·Point — 완료), 화면 설정 메뉴(Pixel Perfect Camera 640x360, 소팅 레이어 — 완료), 입력 액션 개편과 쓰지 않는 스크립트 제거(완료), 새 테스트 씬(`TestArenaBuilder` — 완료), 예전 아트·씬 정리
-- [ ] **N1 플레이어**: 이동 수치 재조정, 새 애니메이션 연결, 발판 내려가기, 페이즈 대시(3연속)
-- [ ] **N2 사격**: 수평 사격, 과열 게이지, 과열 배출, 차지 샷, 무기 모듈(W1·W2·W4)과 교체
+- [x] **N0 전환 정리**: 에셋 정리(원본을 `Docs/ArtSources/`로 이동, `__MACOSX`·zip 삭제 — 완료), 에셋 변환과 임포트 설정(`convert_marsh.py`, PPU 64·Point — 완료), 화면 설정 메뉴(Pixel Perfect Camera 640x360, 소팅 레이어 — 완료), 입력 액션 개편과 쓰지 않는 스크립트 제거(완료), 새 테스트 씬(`TestArenaBuilder` — 완료), 예전 아트·씬 정리(완료)
+- [ ] **N1 플레이어**: 이동 수치 재조정, 새 애니메이션 연결(점프 프레임 고정 — 완료), 발판 내려가기(완료), 페이즈 대시(3연속 — 완료)
+- [ ] **N2 사격**: 수평 사격, 과열 게이지, 과열 배출, 차지 샷, 무기 모듈(W1·W2·W4)과 교체, 사격 피드백(사격 자세, 총구 화염, 탄 그림, 착탄 이펙트, 반동)
 - [ ] **N3 적·카운터**: E1 러너(신호·물기), 카운터와 카운터 처치, E2 브루트, E5 감염 병사, 사망 연출·혈흔
 - [ ] **N4 소탕 방**: 문 잠금·해제, 웨이브 데이터와 출현 처리, 방 클리어, 방 단위 재시작, X1 가스탱크, X3 파괴 상자
 - [ ] **N5 UI·점수**: HUD(체력, 열, 대시 횟수, 모듈, 콤보), 방 평가, 일시정지, 사망 화면
 - [ ] **N6 확장 요소**: E3 천장 기생체, E4 폭발체, X2 방화문, X4 소등 구역
 - [ ] **N7 1구역 제작**: 방 6개 배치와 웨이브 구성(7.1), 구역 클리어 화면, 사운드
-- [ ] **N8 폴리싱**: 타격감(화면 흔들림, 히트스톱), 밸런스, 버그 수정
+- [ ] **N8 폴리싱**: 타격감(화면 흔들림, 히트스톱, 총구 조명), 효과음, 밸런스, 버그 수정
 
 ---
 
