@@ -4,14 +4,14 @@ using UnityEngine;
 namespace Platformer.Enemies
 {
     /// <summary>
-    /// E1 러너 (GDD 4.6). 플레이어를 보면 달려와서 문다.
+    /// E1 러너 (GDD 4.6). 플레이어를 보면 달려와서 문다. E2 브루트도 설정·그림만 바꿔 이 행동을 쓴다.
     /// 상태: 대기 → 추격 → 웅크림(마지막 신호 시간 동안 하얗게 깜빡임 = 카운터 판정) → 튀어 물기 → 쉬기 → 추격 …
     /// 같은 층(높이 차이 안)에 있고 가로 거리 안이며 사이에 벽이 없을 때만 쫓는다. 낭떠러지와 벽 앞에서는 멈춘다.
     /// 경직되면 하던 공격을 끊고, 경직이 끝나면 쉬기부터 다시 시작한다.
     /// 그림 원본은 왼쪽을 보고 있으므로 오른쪽을 볼 때 좌우를 뒤집는다.
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D), typeof(BoxCollider2D), typeof(Enemy))]
-    public class EnemyRunner : MonoBehaviour
+    public class EnemyRunner : MonoBehaviour, ICounterable
     {
         enum State { Idle, Chase, Windup, Lunge, Recover }
 
@@ -20,6 +20,8 @@ namespace Platformer.Enemies
         const float LedgeCheckDistance = 0.3f;
         // 신호 깜빡임 속도 (초당 켜짐 횟수)
         const float SignalBlinkRate = 16f;
+        // 카운터 경직 깜빡임 속도
+        const float StaggerBlinkRate = 5f;
 
         [SerializeField] EnemyRunnerSettings settings;
         [Tooltip("벽과 바닥으로 볼 레이어")]
@@ -54,6 +56,8 @@ namespace Platformer.Enemies
         public bool IsSignaling =>
             state == State.Windup && !enemy.IsDead && StateTime >= settings.WindupTime - settings.SignalTime;
 
+        public bool IsCounterWindowOpen => IsSignaling;
+
         float StateTime => Time.time - stateStartTime;
 
         void Reset()
@@ -68,6 +72,7 @@ namespace Platformer.Enemies
             box = GetComponent<BoxCollider2D>();
             enemy = GetComponent<Enemy>();
             body.freezeRotation = true;
+            enemy.FacingDirection = direction;
             wallLayers = groundLayers & ~LayerMask.GetMask("OneWay");
 
             foreach (SheetClip clip in new[] { idle, run, bite, die })
@@ -143,6 +148,7 @@ namespace Platformer.Enemies
             }
 
             direction = target.position.x >= transform.position.x ? 1 : -1;
+            enemy.FacingDirection = direction;
             if (FrontGap() <= settings.AttackRange)
             {
                 SetState(State.Windup);
@@ -177,7 +183,7 @@ namespace Platformer.Enemies
             var damageable = hit.GetComponentInParent<IDamageable>();
             if (damageable == null) return;
 
-            damageable.TakeDamage(new DamageInfo(settings.BiteDamage, transform.position));
+            damageable.TakeDamage(new DamageInfo(settings.BiteDamage, transform.position, false, settings.BiteKnockbackScale));
             biteLanded = true;
         }
 
@@ -248,7 +254,10 @@ namespace Platformer.Enemies
 
             if (overlayRenderer == null) return;
             bool signalOn = IsSignaling && Mathf.Repeat(Time.time * SignalBlinkRate, 1f) < 0.5f;
-            overlayRenderer.enabled = !enemy.IsDead && (enemy.IsHitFlashing || signalOn);
+            // 카운터 경직 중에는 느리게 반투명으로 깜빡여 처치할 수 있는 상태임을 보여준다
+            bool staggerOn = enemy.IsCounterStaggered && Mathf.Repeat(Time.time * StaggerBlinkRate, 1f) < 0.5f;
+            overlayRenderer.enabled = !enemy.IsDead && (enemy.IsHitFlashing || signalOn || staggerOn);
+            overlayRenderer.color = staggerOn && !enemy.IsHitFlashing && !signalOn ? new Color(1f, 1f, 1f, 0.5f) : Color.white;
             overlayRenderer.sprite = clip.WhiteFrame(frame);
             overlayRenderer.flipX = spriteRenderer.flipX;
         }

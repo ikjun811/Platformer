@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 132ce7be52b6e1f41a92a8b856940015, type: 3}
+  m_Name: EnemyBruteSettings
+  m_EditorClassIdentifier: Platformer.Runtime::Platformer.Enemies.EnemyRunnerSettings
+  maxHealth: 120
+  contactDamage: 10
+  hitFlashTime: 0.08
+  deathDuration: 0.6
+  knockbackDeceleration: 2
+  knockbackScale: 0.5
+  frontDamageMultiplier: 0.3
+  detectRange: 6
+  detectHeight: 1.5
+  chaseSpeed: 1.8
+  attackRange: 0.6
+  windupTime: 0.8
+  signalTime: 0.3
+  lungeSpeed: 5
+  lungeTime: 0.2
+  biteDamage: 25
+  biteKnockbackScale: 2
+  biteSize: {x: 1, y: 1}
+  recoverTime: 1

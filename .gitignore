@@ -88,3 +88,6 @@ __pycache__/
 # Gemini 원본과 처리 미리보기 (용량이 크고 재생성 가능)
 /Docs/ArtSamples/Gemini/make/
 /Docs/ArtSamples/Gemini/Processed/
+
+# soft_retro (intergenic) Godot 테마 원본: 재배포 조건이 불분명해 저장소에 올리지 않는다. 출처는 Docs/Credits.md
+/Docs/ArtSources/soft_retro/

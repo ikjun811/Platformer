@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4663130573db2ae4694b5c8036e112eb, type: 3}
   m_Name: PlayerDashSettings
   m_EditorClassIdentifier: Platformer.Runtime::Platformer.Player.PlayerDashSettings
-  distance: 1.5
-  duration: 0.1
+  distance: 1.95
+  duration: 0.13
   evadeGrace: 0.05
   maxChain: 3
   chainWindow: 0.4

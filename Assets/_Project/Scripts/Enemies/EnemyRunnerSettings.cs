@@ -4,6 +4,7 @@ namespace Platformer.Enemies
 {
     /// <summary>
     /// E1 러너 수치 (GDD 4.6). 단위는 유닛(= 타일)과 초.
+    /// E2 브루트도 같은 행동(EnemyRunner)을 쓰므로 이 설정을 다른 값으로 하나 더 만들어 쓴다.
     /// </summary>
     [CreateAssetMenu(fileName = "EnemyRunnerSettings", menuName = "Platformer/Enemy Runner Settings")]
     public class EnemyRunnerSettings : EnemySettings
@@ -31,6 +32,8 @@ namespace Platformer.Enemies
         [SerializeField] float lungeTime = 0.15f;
         [Tooltip("물기 피해")]
         [SerializeField] int biteDamage = 15;
+        [Tooltip("물린 플레이어가 밀려나는 세기 배율 (1 = 기본)")]
+        [SerializeField] float biteKnockbackScale = 1f;
         [Tooltip("물기 판정 크기 (몸 앞쪽, 타일)")]
         [SerializeField] Vector2 biteSize = new(0.5f, 0.5f);
         [Tooltip("물고 난 뒤 쉬는 시간 (초)")]
@@ -45,6 +48,7 @@ namespace Platformer.Enemies
         public float LungeSpeed => lungeSpeed;
         public float LungeTime => lungeTime;
         public int BiteDamage => biteDamage;
+        public float BiteKnockbackScale => biteKnockbackScale;
         public Vector2 BiteSize => biteSize;
         public float RecoverTime => recoverTime;
     }

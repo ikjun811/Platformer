@@ -11,6 +11,7 @@ namespace Platformer.Player
     /// 다 차기 전에 떼면 충전이 사라진다. 차지 샷은 모듈과 상관없이 공통이다.
     /// Q를 누르면 장착 목록(WeaponLoadout)의 다음 모듈로 바꾼다.
     /// 쏠 때마다 PlayerHeat에 열을 더하고, 과열 중에는 쏘지 못하며 사격 키는 배출 시도로 쓴다 (GDD 4.2).
+    /// 쏘는 순간 PlayerCounter가 있으면 카운터 처치를 먼저 확인하고, 카운터 실패 후딜레이 중에는 쏘지 못한다 (GDD 4.5).
     /// 탄 오브젝트는 모듈별 풀에 모아 두고 재사용한다.
     /// </summary>
     [RequireComponent(typeof(BoxCollider2D), typeof(PlayerMovement), typeof(PlayerInputReader))]
@@ -35,6 +36,8 @@ namespace Platformer.Player
         PlayerMovement movement;
         PlayerInputReader input;
         PlayerHeat heat;
+        // 없어도 된다 (카운터가 없는 테스트 구성)
+        PlayerCounter counter;
 
         readonly Dictionary<WeaponModule, ObjectPool<Projectile>> modulePools = new();
         ObjectPool<Projectile> chargeBeamPool;
@@ -76,6 +79,7 @@ namespace Platformer.Player
             movement = GetComponent<PlayerMovement>();
             input = GetComponent<PlayerInputReader>();
             heat = GetComponent<PlayerHeat>();
+            counter = GetComponent<PlayerCounter>();
 
             projectileLayer = LayerMask.NameToLayer("PlayerProjectile");
             foreach (WeaponModule module in loadout.Modules)
@@ -144,6 +148,8 @@ namespace Platformer.Player
             chargeEffect.color = color;
         }
 
+        bool CanFire() => !movement.ControlLocked && (counter == null || !counter.IsRecovering);
+
         void SwapModule()
         {
             if (loadout.Modules.Count <= 1) return;
@@ -153,10 +159,11 @@ namespace Platformer.Player
         // 현재 모듈의 탄을 쏜다. 여러 발이면 위아래로 고르게 벌려 쏜다
         void FireModule()
         {
-            if (movement.ControlLocked || Time.time < nextFireTime) return;
+            if (!CanFire() || Time.time < nextFireTime) return;
 
             WeaponModule module = CurrentModule;
             nextFireTime = Time.time + module.FireCooldown;
+            if (counter != null) counter.TryCounterKill();
 
             ObjectPool<Projectile> pool = modulePools[module];
             int count = module.ProjectileCount;
@@ -174,9 +181,10 @@ namespace Platformer.Player
         void FireChargeBeam()
         {
             // 조작이 잠긴 동안(대시 등) 다 찬 충전을 떼면 쏘지 못하고 사라진다
-            if (movement.ControlLocked) return;
+            if (!CanFire()) return;
 
             nextFireTime = Time.time + CurrentModule.FireCooldown;
+            if (counter != null) counter.TryCounterKill();
             chargeBeamPool.Get().Launch(MuzzlePosition, Direction, settings.ChargeBeamSpeed, settings.ChargeBeamRange, settings.ChargeBeamRadius,
                 settings.ChargeBeamDamage, hitLayers);
             heat.AddHeat(settings.ChargeBeamHeat);

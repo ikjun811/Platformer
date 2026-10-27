@@ -7,10 +7,11 @@ namespace Platformer.Player
     /// 플레이어 피격 처리 (GDD 4.3).
     /// - 일반 피해: 피해 반대 방향으로 넉백, 잠깐 조작 불가, 무적 시간 동안 깜빡임
     /// - 환경 피해(가시 등): 넉백 대신 마지막 안전한 발판으로 되돌림
-    /// - 에너지 0: 임시로 시작 위치에서 에너지를 채워 재시작 (세이브 스테이션 재시작은 M3)
+    /// - 에너지 0: 부활 위치에서 체력·열을 채워 다시 시작한다 (GDD 7). 부활 위치는 처음엔 시작 위치이고,
+    ///   소탕 방이 시작되면 그 방 입구로 바뀐다 (Room이 SetRespawnPoint 호출)
     /// </summary>
     [RequireComponent(typeof(Health), typeof(PlayerMovement), typeof(Rigidbody2D))]
-    public class PlayerHurt : MonoBehaviour
+    public class PlayerHurt : MonoBehaviour, IRespawnable
     {
         [SerializeField] PlayerHurtSettings settings;
         [Tooltip("무적 중 깜빡일 그림")]
@@ -24,6 +25,7 @@ namespace Platformer.Player
         PlayerMovement movement;
         Rigidbody2D body;
         BoxCollider2D box;
+        PlayerHeat heat;
 
         Vector2 spawnPosition;
         Vector2 lastSafePosition;
@@ -39,6 +41,7 @@ namespace Platformer.Player
             movement = GetComponent<PlayerMovement>();
             body = GetComponent<Rigidbody2D>();
             box = GetComponent<BoxCollider2D>();
+            heat = GetComponent<PlayerHeat>();
 
             health.SetMax(settings.MaxEnergy, true);
             spawnPosition = lastSafePosition = body.position;
@@ -89,16 +92,24 @@ namespace Platformer.Player
             }
 
             int direction = body.position.x >= damage.SourcePosition.x ? 1 : -1;
-            Vector2 knockback = settings.KnockbackVelocity;
+            Vector2 knockback = settings.KnockbackVelocity * damage.KnockbackScale;
             movement.ApplyKnockback(new Vector2(direction * knockback.x, knockback.y), settings.StunTime);
         }
 
         void OnDied()
         {
-            Debug.Log("[PlayerHurt] 에너지 0 → 시작 위치에서 재시작 (임시, 세이브 스테이션 재시작은 M3)");
+            Debug.Log("[PlayerHurt] 에너지 0 → 부활 위치에서 다시 시작");
             Teleport(spawnPosition);
             lastSafePosition = spawnPosition;
             health.RestoreFull();
+            if (heat != null)
+                heat.ResetHeat();
+        }
+
+        /// <summary>부활 위치를 정한다 (발 위치). 몸 위치(충돌체 바닥이 발에 오는 위치)로 바꿔 저장한다.</summary>
+        public void SetRespawnPoint(Vector2 feet)
+        {
+            spawnPosition = feet + new Vector2(0f, box.size.y * 0.5f - box.offset.y);
         }
 
         void Teleport(Vector2 position)

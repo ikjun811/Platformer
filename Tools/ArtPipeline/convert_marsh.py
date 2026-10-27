@@ -168,6 +168,28 @@ def build_props():
             if f.startswith(f"scifi_{kind}_"):
                 copy(f"32x32/{f}", f"Props/{out_name}_{f[len(f'scifi_{kind}_'):]}")
 
+    save(gas_tank(), "Props/GasTank.png")
+
+
+def gas_tank():
+    """X1 가스탱크 소품 (원본에 따로 없어 만든다).
+    가스탱크가 그려진 벽 타일(4j1a)에서 같은 자리의 민 벽(4i1a)과 다른 픽셀만 남겨 탱크를 떼어 내고,
+    가장자리 잡티와 바닥 그림자 줄을 지운 뒤 받침이 그림 바닥에 닿도록 내린다."""
+    tank = load("scifi_4j1a.png")
+    wall = load("scifi_4i1a.png")
+    pt, pw = tank.load(), wall.load()
+    out = Image.new("RGBA", tank.size)
+    po = out.load()
+    for y in range(tank.height):
+        for x in range(tank.width):
+            # 탱크 몸통 영역(x 13~50, y 0~60) 밖은 잡티라 버린다
+            if 13 <= x <= 50 and y <= 60 and pt[x, y] != pw[x, y]:
+                po[x, y] = pt[x, y]
+    bottom = out.getbbox()[3]
+    shifted = Image.new("RGBA", out.size)
+    shifted.alpha_composite(out, (0, out.height - bottom))
+    return shifted
+
 
 def build_fx():
     fire = [load(f"anims/scifi_blasterfire_{i}.png") for i in (1, 2)]

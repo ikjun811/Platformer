@@ -6,12 +6,14 @@ namespace Platformer.Gameplay
     /// <summary>
     /// 체력 (플레이어의 에너지, 적의 체력 공용).
     /// 무적 시간 동안은 피해를 무시한다. 피해·사망은 이벤트로 알린다.
+    /// 같은 오브젝트에 IDamageModifier가 있으면 받는 피해량을 그쪽에 물어 바꾼다.
     /// </summary>
     public class Health : MonoBehaviour, IDamageable
     {
         [Tooltip("최대 체력. 플레이어는 PlayerHurt가 설정 에셋 값으로 덮어쓴다")]
         [SerializeField] int maxHealth = 10;
 
+        IDamageModifier modifier;
         float invulnerableUntil;
         float evadingUntil;
 
@@ -34,6 +36,7 @@ namespace Platformer.Gameplay
         void Awake()
         {
             Current = maxHealth;
+            modifier = GetComponent<IDamageModifier>();
         }
 
         public void SetMax(int max, bool refill)
@@ -46,11 +49,25 @@ namespace Platformer.Gameplay
         {
             if (IsDead || IsInvulnerable || IsEvading || damage.Amount <= 0) return false;
 
-            Current = Mathf.Max(0, Current - damage.Amount);
-            Damaged?.Invoke(damage);
+            DamageInfo applied = modifier != null ? damage.WithAmount(modifier.ModifyDamage(damage)) : damage;
+            if (applied.Amount <= 0) return false;
+
+            Current = Mathf.Max(0, Current - applied.Amount);
+            Damaged?.Invoke(applied);
             if (Current == 0)
                 Died?.Invoke();
             return true;
+        }
+
+        /// <summary>무적·피해 감소와 상관없이 즉시 죽인다 (카운터 처치).</summary>
+        public void Kill(Vector2 sourcePosition)
+        {
+            if (IsDead) return;
+
+            int amount = Current;
+            Current = 0;
+            Damaged?.Invoke(new DamageInfo(amount, sourcePosition));
+            Died?.Invoke();
         }
 
         public void SetInvulnerable(float duration)
@@ -66,6 +83,13 @@ namespace Platformer.Gameplay
         public void RestoreFull()
         {
             Current = maxHealth;
+        }
+
+        /// <summary>체력을 회복한다 (최대치까지). 죽은 상태에서는 회복하지 않는다.</summary>
+        public void Heal(int amount)
+        {
+            if (IsDead || amount <= 0) return;
+            Current = Mathf.Min(maxHealth, Current + amount);
         }
     }
 }

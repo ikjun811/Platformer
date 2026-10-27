@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65e69399fe1b2854eb32ac12144f0815, type: 3}
+  m_Name: EnemyInfectedSettings
+  m_EditorClassIdentifier: Platformer.Runtime::Platformer.Enemies.EnemyShooterSettings
+  maxHealth: 40
+  contactDamage: 5
+  hitFlashTime: 0.08
+  deathDuration: 0.5
+  knockbackDeceleration: 2
+  knockbackScale: 1
+  frontDamageMultiplier: 1
+  detectRange: 8
+  detectHeight: 1
+  walkSpeed: 1.5
+  fireRange: 6
+  aimTime: 0.5
+  burstCount: 3
+  burstInterval: 0.2
+  cooldownTime: 1.5
+  bulletDamage: 10
+  bulletSpeed: 8
+  bulletRange: 9
+  bulletRadius: 0.06
+  bulletSize: {x: 0.3, y: 0.08}
+  bulletColor: {r: 0.8, g: 1, b: 0.3, a: 1}
+  shoulderDepth: 0.22
+  muzzleDistance: 0.3

@@ -75,6 +75,21 @@ namespace Platformer.Player
                 BeginOverheat();
         }
 
+        /// <summary>과열과 열을 모두 없앤다 (부활).</summary>
+        public void ResetHeat()
+        {
+            IsOverheated = false;
+            ventFailed = false;
+            Heat = 0f;
+        }
+
+        /// <summary>열을 내린다 (카운터 처치 보상). 과열 중에는 바뀌지 않는다.</summary>
+        public void ReduceHeat(float amount)
+        {
+            if (IsOverheated) return;
+            Heat = Mathf.Max(0f, Heat - amount);
+        }
+
         /// <summary>과열 중 배출을 시도한다. 성공하면 true.</summary>
         public bool TryVent()
         {

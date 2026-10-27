@@ -7,6 +7,7 @@ namespace Platformer.Player
     /// 페이즈 대시 (GDD 4.4).
     /// L을 누르면 바라보는 방향(이동 키를 누르고 있으면 그 방향)으로 짧은 거리를 매우 빠르게 이동한다.
     /// 대시 중에는 중력을 받지 않고, 회피 무적이며, 적의 몸을 통과한다. 벽은 통과하지 못한다.
+    /// 대시가 끝날 때 적과 겹쳐 있으면 빠져나올 때까지 조금 더 이어서 간다 (큰 적을 한 번에 통과하도록).
     /// 연결 시간 안에 다시 누르면 최대 횟수까지 이어서 쓸 수 있고, 다 쓰거나 연결이 끊기면 재사용 대기 후 횟수가 모두 찬다.
     /// 대시 이동은 물리 속도 대신 매 물리 프레임 직접 옮긴다. 빠른 속도로 계단을 지나면 한 프레임에 턱을 여러 개 만나므로,
     /// 이동을 잘게 나눠 낮은 턱은 올라타고 벽에서는 멈춘다.
@@ -38,6 +39,7 @@ namespace Platformer.Player
         int direction;
         float dashEndTime;
         float remainingDistance;
+        float exitRemaining;
         float lastPressedTime = float.NegativeInfinity;
 
         int chainCount;
@@ -98,11 +100,26 @@ namespace Platformer.Player
         {
             if (dashing)
             {
-                // 거리를 다 갔거나, 벽에 막혀 시간이 다 됐으면 끝낸다
-                if (remainingDistance <= 0f || Time.time >= dashEndTime)
-                    EndDash();
+                float step = settings.Speed * Time.fixedDeltaTime;
+                if (remainingDistance > 0f && Time.time < dashEndTime)
+                {
+                    step = Mathf.Min(step, remainingDistance);
+                    remainingDistance -= step;
+                    DashMove(step);
+                }
+                else if (exitRemaining > 0f && OverlapsPassThrough())
+                {
+                    // 적 몸 안에서 끝나지 않도록 빠져나올 때까지 이어 가고, 그동안 무적을 유지한다
+                    step = Mathf.Min(step, exitRemaining);
+                    exitRemaining -= step;
+                    DashMove(step);
+                    health.SetEvading(Time.fixedDeltaTime + settings.EvadeGrace);
+                }
                 else
-                    DashMove();
+                {
+                    // 거리를 다 갔거나, 벽에 막혀 시간이 다 됐고 적과 겹쳐 있지 않으면 끝낸다
+                    EndDash();
+                }
                 return;
             }
 
@@ -153,6 +170,7 @@ namespace Platformer.Player
             chainCount++;
             direction = input.Horizontal != 0 ? input.Horizontal : movement.FacingDirection;
             remainingDistance = settings.Distance;
+            exitRemaining = settings.MaxExitDistance;
             // 시작 프레임도 이동하므로 시간 제한은 막혔을 때만 쓰인다
             dashEndTime = Time.time + settings.Duration + Time.fixedDeltaTime;
 
@@ -167,12 +185,22 @@ namespace Platformer.Player
 
             SpawnAfterimage();
             nextAfterimageTime = Time.time + settings.AfterimageInterval;
-            DashMove();
+
+            float step = Mathf.Min(settings.Speed * Time.fixedDeltaTime, remainingDistance);
+            remainingDistance -= step;
+            DashMove(step);
         }
 
-        // 이번 물리 프레임의 대시 거리를 나눠 이동한다: 막힘 없으면 끝까지, 낮은 턱이면 올라타고 계속, 벽이면 멈춘다.
-        // 적은 단단한 지형 레이어가 아니므로 판정에 걸리지 않는다 (몸 충돌은 excludeLayers로 끈다)
-        void DashMove()
+        bool OverlapsPassThrough()
+        {
+            Bounds b = box.bounds;
+            return Physics2D.OverlapBox(b.center, b.size, 0f, passThroughLayers) != null;
+        }
+
+        // 이번 물리 프레임의 대시 거리(distance)를 나눠 이동한다: 막힘 없으면 끝까지, 낮은 턱이면 올라타고 계속, 벽이면 멈춘다.
+        // 적은 단단한 지형 레이어가 아니므로 판정에 걸리지 않는다 (몸 충돌은 excludeLayers로 끈다).
+        // 막혀서 못 간 거리는 남겨 두지 않는다 (막힌 채로 남은 거리를 채우려 하지 않도록)
+        void DashMove(float distance)
         {
             int layers = movement.SolidLayers;
             float maxStep = movement.Settings.MaxStepHeight;
@@ -182,9 +210,7 @@ namespace Platformer.Player
             Vector2 offset = (Vector2)start.center - body.position;
             Vector2 size = start.size;
             Vector2 position = body.position;
-            float remaining = Mathf.Min(settings.Speed * Time.fixedDeltaTime, remainingDistance);
-            // 막혀서 못 간 거리는 남겨 두지 않는다 (막힌 채로 남은 거리를 채우려 하지 않도록)
-            remainingDistance -= remaining;
+            float remaining = distance;
 
             for (int i = 0; i < MaxStepsPerFrame && remaining > 0f; i++)
             {

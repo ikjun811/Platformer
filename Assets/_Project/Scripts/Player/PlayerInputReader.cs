@@ -16,6 +16,7 @@ namespace Platformer.Player
         InputAction moveAction;
         InputAction jumpAction;
         InputAction fireAction;
+        InputAction counterAction;
         InputAction dashAction;
         InputAction swapWeaponAction;
 
@@ -46,6 +47,9 @@ namespace Platformer.Player
         /// <summary>이번 프레임에 사격(J)을 뗐는지 (차지 빔 발사용)</summary>
         public bool FireReleasedThisFrame { get; private set; }
 
+        /// <summary>이번 프레임에 카운터(K)를 새로 눌렀는지</summary>
+        public bool CounterPressedThisFrame { get; private set; }
+
         /// <summary>이번 프레임에 페이즈 대시(L)를 새로 눌렀는지</summary>
         public bool DashPressedThisFrame { get; private set; }
 
@@ -60,6 +64,7 @@ namespace Platformer.Player
             moveAction = InputSystem.actions.FindAction("Player/Move", true);
             jumpAction = InputSystem.actions.FindAction("Player/Jump", true);
             fireAction = InputSystem.actions.FindAction("Player/Fire", true);
+            counterAction = InputSystem.actions.FindAction("Player/Counter", true);
             dashAction = InputSystem.actions.FindAction("Player/Dash", true);
             swapWeaponAction = InputSystem.actions.FindAction("Player/SwapWeapon", true);
         }
@@ -69,6 +74,7 @@ namespace Platformer.Player
             moveAction.Enable();
             jumpAction.Enable();
             fireAction.Enable();
+            counterAction.Enable();
             dashAction.Enable();
             swapWeaponAction.Enable();
         }
@@ -94,6 +100,7 @@ namespace Platformer.Player
             FireHeld = fireAction.IsPressed();
             FirePressedThisFrame = fireAction.WasPressedThisFrame();
             FireReleasedThisFrame = fireAction.WasReleasedThisFrame();
+            CounterPressedThisFrame = counterAction.WasPressedThisFrame();
             DashPressedThisFrame = dashAction.WasPressedThisFrame();
             SwapWeaponPressedThisFrame = swapWeaponAction.WasPressedThisFrame();
         }

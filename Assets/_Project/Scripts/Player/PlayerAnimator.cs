@@ -1,57 +1,22 @@
-using System;
+using Platformer.Gameplay;
 using UnityEngine;
 
 namespace Platformer.Player
 {
     /// <summary>
     /// 플레이어 스프라이트 애니메이션.
-    /// 프레임을 가로로 이어붙인 시트(Tools/ArtPipeline/convert_marsh.py 결과)를 플레이 시작 때 프레임으로 자르고,
-    /// 매 프레임 플레이어 상태에 맞는 그림을 SpriteRenderer에 넣는다.
+    /// 시트(SheetClip)를 플레이 시작 때 프레임으로 자르고, 매 프레임 플레이어 상태에 맞는 그림을 SpriteRenderer에 넣는다.
     /// 피벗은 서 있을 때 충돌체의 바닥 중앙이고, 왼쪽을 볼 때는 좌우 반전한다.
     /// Animator Controller 대신 코드로 상태를 고른다 (상태 판단을 이동 컴포넌트와 같은 기준으로 한곳에서 하기 위해).
     /// </summary>
     [RequireComponent(typeof(PlayerMovement), typeof(BoxCollider2D))]
     public class PlayerAnimator : MonoBehaviour
     {
-        // GDD v2 8장: 1타일 = 64px
-        const float PixelsPerUnit = 64f;
-
-        [Serializable]
-        class Clip
-        {
-            [Tooltip("프레임을 가로로 이어붙인 시트")]
-            [SerializeField] Texture2D sheet;
-            [Tooltip("프레임 한 칸의 가로 크기 (px). 세로는 시트 높이")]
-            [SerializeField] int cellWidth = 384;
-            [Tooltip("칸 안에서 피벗(충돌체 바닥 중앙)의 x 위치 (px)")]
-            [SerializeField] int pivotX = 192;
-            [Tooltip("초당 프레임 수 (반복 재생하는 동작만 사용)")]
-            [SerializeField] float framesPerSecond = 10f;
-
-            public Sprite[] Frames { get; private set; } = Array.Empty<Sprite>();
-            public float FramesPerSecond => framesPerSecond;
-
-            public void Build()
-            {
-                if (sheet == null || cellWidth <= 0) return;
-
-                int count = sheet.width / cellWidth;
-                var pivot = new Vector2((float)pivotX / cellWidth, 0f);
-                Frames = new Sprite[count];
-                for (int i = 0; i < count; i++)
-                {
-                    var rect = new Rect(i * cellWidth, 0, cellWidth, sheet.height);
-                    Frames[i] = Sprite.Create(sheet, rect, pivot, PixelsPerUnit, 0, SpriteMeshType.FullRect);
-                    Frames[i].name = $"{sheet.name}_{i}";
-                }
-            }
-        }
-
         [SerializeField] SpriteRenderer spriteRenderer;
-        [SerializeField] Clip idle = new();
-        [SerializeField] Clip run = new();
+        [SerializeField] SheetClip idle = new();
+        [SerializeField] SheetClip run = new();
         [Tooltip("공중에 있는 동안 보여줄 시트")]
-        [SerializeField] Clip jump = new();
+        [SerializeField] SheetClip jump = new();
         [Tooltip("공중에 있는 동안 고정해서 보여줄 프레임 번호 (GDD 3.3: 달리기 시트의 run_3 = 2)")]
         [SerializeField] int jumpFrame = 2;
 
@@ -60,14 +25,14 @@ namespace Platformer.Player
 
         PlayerMovement movement;
 
-        Clip current;
+        SheetClip current;
         float clipTime;
 
         void Awake()
         {
             movement = GetComponent<PlayerMovement>();
 
-            foreach (Clip clip in new[] { idle, run, jump })
+            foreach (SheetClip clip in new[] { idle, run, jump })
                 clip.Build();
 
             // 스프라이트 피벗(발)이 충돌체 바닥에 오도록 한다
@@ -77,7 +42,7 @@ namespace Platformer.Player
 
         void LateUpdate()
         {
-            Clip next = SelectState();
+            SheetClip next = SelectState();
             if (next != current)
             {
                 current = next;
@@ -88,13 +53,13 @@ namespace Platformer.Player
                 clipTime += Time.deltaTime;
             }
 
-            if (current.Frames.Length > 0)
-                spriteRenderer.sprite = current.Frames[Mathf.Clamp(SelectFrame(), 0, current.Frames.Length - 1)];
+            if (current.Length > 0)
+                spriteRenderer.sprite = current.Frame(SelectFrame());
 
             spriteRenderer.flipX = movement.FacingDirection < 0;
         }
 
-        Clip SelectState()
+        SheetClip SelectState()
         {
             if (!movement.IsGrounded) return jump;
             if (Mathf.Abs(movement.Velocity.x) > runSpeedThreshold) return run;
@@ -108,12 +73,7 @@ namespace Platformer.Player
             if (current == jump)
                 return jumpFrame;
 
-            int step = Mathf.FloorToInt(clipTime * current.FramesPerSecond);
-
-            if (current == idle || current == run)
-                return step % Mathf.Max(current.Frames.Length, 1);
-
-            return 0;
+            return current.FrameAt(clipTime, true);
         }
     }
 }

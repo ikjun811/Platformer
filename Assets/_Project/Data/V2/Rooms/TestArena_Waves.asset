@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54f8d446c8253cc4294d5f01abe9a50d, type: 3}
+  m_Name: TestArena_Waves
+  m_EditorClassIdentifier: Platformer.Runtime::Platformer.Gameplay.RoomWaveData
+  waves:
+  - spawns:
+    - enemyPrefab: {fileID: 4215438168924179022, guid: b21ba4ed9b36a274cb3fa2b2ca427b51, type: 3}
+      spawnPoint: 0
+      delay: 0
+    - enemyPrefab: {fileID: 4215438168924179022, guid: b21ba4ed9b36a274cb3fa2b2ca427b51, type: 3}
+      spawnPoint: 2
+      delay: 0.5
+    advanceWhenRemaining: 0
+  - spawns:
+    - enemyPrefab: {fileID: 2192006667795059153, guid: 9058d6322b7a1e44eac4986c531ba900, type: 3}
+      spawnPoint: 3
+      delay: 0
+    - enemyPrefab: {fileID: 4215438168924179022, guid: b21ba4ed9b36a274cb3fa2b2ca427b51, type: 3}
+      spawnPoint: 1
+      delay: 0.3
+    - enemyPrefab: {fileID: 4215438168924179022, guid: b21ba4ed9b36a274cb3fa2b2ca427b51, type: 3}
+      spawnPoint: 0
+      delay: 1
+    advanceWhenRemaining: 1
+  - spawns:
+    - enemyPrefab: {fileID: 8801060463016312582, guid: 143b0593e3073c743829731155e17e10, type: 3}
+      spawnPoint: 1
+      delay: 0
+    - enemyPrefab: {fileID: 4215438168924179022, guid: b21ba4ed9b36a274cb3fa2b2ca427b51, type: 3}
+      spawnPoint: 0
+      delay: 0.8
+    - enemyPrefab: {fileID: 4215438168924179022, guid: b21ba4ed9b36a274cb3fa2b2ca427b51, type: 3}
+      spawnPoint: 2
+      delay: 1.6
+    advanceWhenRemaining: 0

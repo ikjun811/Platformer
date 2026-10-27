@@ -15,6 +15,8 @@ namespace Platformer.Player
         [SerializeField] float duration = 0.13f;
         [Tooltip("대시가 끝난 뒤에도 피해를 무시하는 시간 (초)")]
         [SerializeField] float evadeGrace = 0.05f;
+        [Tooltip("대시가 끝날 때 적과 겹쳐 있으면 빠져나올 때까지 더 가는 최대 거리 (타일)")]
+        [SerializeField] float maxExitDistance = 1.5f;
 
         [Header("연속 사용")]
         [Tooltip("이어서 쓸 수 있는 최대 횟수")]
@@ -38,6 +40,7 @@ namespace Platformer.Player
         public float Duration => duration;
         public float Speed => distance / Mathf.Max(duration, 0.01f);
         public float EvadeGrace => evadeGrace;
+        public float MaxExitDistance => maxExitDistance;
         public int MaxChain => maxChain;
         public float ChainWindow => chainWindow;
         public float Cooldown => cooldown;

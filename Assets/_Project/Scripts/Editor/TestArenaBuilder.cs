@@ -17,8 +17,9 @@ namespace Platformer.EditorTools
 {
     /// <summary>
     /// 메뉴 한 번으로 GDD v2 테스트 씬(TestArena)을 만든다.
-    /// marsh-sci-fi 타일로 30x12타일 2층 소탕 방을 칠하고, 얇은 발판(OneWay)·계단·플레이어·러너·픽셀 카메라를 배치한다.
-    /// 씬 안의 생성 오브젝트(Grid, Walkways, Player, TestEnemies)는 실행할 때마다 지우고 다시 만든다.
+    /// marsh-sci-fi 타일로 소탕 방(30x12타일 2층) 하나와 좌우 통로·문을 칠하고, 얇은 발판(OneWay)·계단·플레이어·픽셀 카메라를 배치한다.
+    /// 적은 프리팹(Prefabs/Enemies)으로 저장하고, 방(Room)이 웨이브 데이터대로 생성한다 (GDD 5.2).
+    /// 씬 안의 생성 오브젝트(Grid, Walkways, Player, Room)는 실행할 때마다 지우고 다시 만든다.
     /// 수치 SO는 Data/V2에 없을 때만 새 크기 기준 임시값으로 만들고, 이미 있으면 건드리지 않는다 (N1에서 조정한 값 보호).
     /// </summary>
     public static class TestArenaBuilder
@@ -30,9 +31,12 @@ namespace Platformer.EditorTools
         const string PropsFolder = "Assets/_Project/Art/Props/";
         const string MarineFolder = "Assets/_Project/Art/Characters/Marine/";
         const string EnemyArtFolder = "Assets/_Project/Art/Enemies/";
+        const string HealthShardSpritePath = "Assets/_Project/Art/FX/Health_Shard.png";
+        const string ExplosionSheetPath = "Assets/_Project/Art/FX/Explosion.png";
         const string PlaceholderSpritePath = "Assets/_Project/Art/Placeholder/Placeholder_Tile.png";
         const string NoFrictionPath = "Assets/_Project/Data/NoFriction.physicsMaterial2D";
         const string DataFolder = "Assets/_Project/Data/V2";
+        const string EnemyPrefabFolder = "Assets/_Project/Prefabs/Enemies";
 
         static readonly Color BackgroundColor = new Color32(0x0A, 0x08, 0x14, 0xFF);
 
@@ -40,31 +44,43 @@ namespace Platformer.EditorTools
         static readonly Vector2 PlayerSize = new(0.3125f, 0.625f);
         // 러너 충돌체: 웅크린 몸통 크기 (외계 생물 그림 몸통 약 60 x 45px)
         static readonly Vector2 RunnerSize = new(0.9f, 0.7f);
+        // 브루트: 러너 그림을 1.5배로 키운다. 2배는 대시로 통과하기 너무 커서 사용자 요청으로 줄임
+        // (정수배가 아니라 픽셀이 고르지 않게 보일 수 있다. GDD 4.6 예외)
+        const float BruteScale = 1.5f;
+        static readonly Vector2 BruteSize = new(1.35f, 1.05f);
 
         // 얇은 발판 그림(32x32)에서 위쪽 13px만 판이다
         const float WalkwayThickness = 13f / 64f;
 
-        // 30x12타일. 맨 윗줄이 y = 11, 맨 아랫줄이 y = 0, 왼쪽 끝이 x = 0
+        // 42x12타일: 왼쪽 통로(0~5) + 방(6~35, 벽 포함 30칸) + 오른쪽 통로(36~41).
+        // 맨 윗줄이 y = 11, 맨 아랫줄이 y = 0, 왼쪽 끝이 x = 0
         // '#' = 벽·바닥·천장 (위치에 따라 그림을 고른다), '.' = 빈칸 (배경만)
         // '=' = 얇은 발판. 그 칸의 윗면이 발판 윗면이다 (y = 3 줄이면 윗면 y = 4)
-        // 'S' = 계단 블록 8칸 한 묶음, 'P' = 플레이어 시작, 'E' = 러너
-        // 바닥 윗면 y = 2, 발판 윗면 y = 4 / 6 / 8 (한 층 2타일, GDD 5.3)
+        // 'S' = 계단 블록 8칸 한 묶음, 'P' = 플레이어 시작, 'D' = 방의 문 (세로로 이어진 칸이 문 하나)
+        // '1'~'9' = 적 출현 지점 (웨이브 데이터의 출현 지점 번호 0~8)
+        // 'C' = 파괴 상자 2개 (0.5타일 상자를 칸 바닥에 나란히), 'G' = 가스탱크
+        // 바닥 윗면 y = 2, 발판 윗면 y = 4 / 6 / 8 (한 층 2타일, GDD 5.3). 통로 높이 2타일
         static readonly string[] Layout =
         {
-            "##############################",  // y = 11 천장 기둥
-            "##############################",  // y = 10 천장 환기구
-            "#............................#",  // y = 9
-            "#............................#",  // y = 8
-            "#..======....................#",  // y = 7 발판 (윗면 8)
-            "#..............E.............#",  // y = 6 가운데 발판 위 (러너)
-            "#.........==========.........#",  // y = 5 발판 (윗면 6)
-            "#............................#",  // y = 4
-            "#=========...........========#",  // y = 3 발판 (윗면 4)
-            "#.P.........SSSSSSSS.....E...#",  // y = 2 바닥 위 (계단, 시작 위치, 적)
-            "##############################",  // y = 1 바닥면
-            "##############################",  // y = 0 기초
+            "##########################################",  // y = 11 천장 기둥
+            "##########################################",  // y = 10 천장 환기구
+            "#######............................#######",  // y = 9
+            "#######............................#######",  // y = 8
+            "#######..======....................#######",  // y = 7 발판 (윗면 8)
+            "#######..............3..G..........#######",  // y = 6 가운데 발판 위 (출현 지점 3, 가스탱크)
+            "#######.........==========.........#######",  // y = 5 발판 (윗면 6)
+            "#######.........................4..#######",  // y = 4 오른쪽 낮은 발판 위 (출현 지점 4)
+            "#.....D=========...........========D.....#",  // y = 3 문 위쪽, 발판 (윗면 4)
+            "#.P...D...CC......SSSSSSSS.2.G.1...D.....#",  // y = 2 통로·문·바닥 (시작 위치, 상자, 계단, 출현 지점 2·1, 가스탱크)
+            "##########################################",  // y = 1 바닥면
+            "##########################################",  // y = 0 기초
         };
         const int TopY = 11;
+        // 방 안쪽 끝 칸 (벽 바로 안쪽)
+        const int RoomLeft = 7;
+        const int RoomRight = 34;
+        // 플레이어가 왼쪽 문에서 이만큼 안쪽으로 들어오면 방이 잠긴다 (문이 닫힐 때 끼지 않도록)
+        const float ActivationInset = 2.5f;
         static int Width => Layout[0].Length;
         static int Height => Layout.Length;
 
@@ -73,12 +89,12 @@ namespace Platformer.EditorTools
         // 벽 아래쪽(y = 2) 배경 특수 타일: x → 코드. 그 외는 민 벽(4i1a)
         static readonly (int x, string code)[] LowerWallProps =
         {
-            (1, "4c1a"), (6, "4d1a"), (9, "4j1a"), (22, "4f1a"), (24, "4h1a"), (26, "4g1a"), (28, "4e1a"),
+            (12, "4d1a"), (15, "4j1a"), (28, "4f1a"), (30, "4h1a"), (32, "4g1a"),
         };
         // 벽 위쪽(y = 3) 배경 장식 타일
         static readonly (int x, string code)[] UpperWallProps =
         {
-            (8, "3e1a"), (14, "3b1a"), (17, "3c1a"), (20, "3d1a"),
+            (14, "3e1a"), (20, "3b1a"), (23, "3c1a"), (26, "3d1a"),
         };
 
         [MenuItem("Tools/Platformer/Build Test Arena")]
@@ -90,7 +106,7 @@ namespace Platformer.EditorTools
             Scene scene = OpenOrCreateScene();
             if (!scene.IsValid()) return;
 
-            foreach (string rootName in new[] { "Grid", "Walkways", "Player", "TestEnemies" })
+            foreach (string rootName in new[] { "Grid", "Walkways", "Player", "TestEnemies", "Room" })
             {
                 GameObject old = GameObject.Find(rootName);
                 if (old != null) Object.DestroyImmediate(old);
@@ -98,13 +114,14 @@ namespace Platformer.EditorTools
 
             EnsureFolder(TileAssetFolder);
             EnsureFolder(DataFolder);
+            EnsureFolder(EnemyPrefabFolder);
 
             var grid = new GameObject("Grid").AddComponent<Grid>();
             PaintBackground(CreateTilemap(grid, "BackWall", "Background", null));
             PaintSolid(CreateTilemap(grid, "Ground", "Tiles", "Ground"));
             BuildWalkways();
             PlayerMovement player = BuildPlayer();
-            BuildTestEnemies();
+            BuildRoom();
             SetupCamera(player);
             SetupGlobalLight();
 
@@ -169,7 +186,7 @@ namespace Platformer.EditorTools
 
         static string BackgroundCode(int x, int y)
         {
-            bool left = x == 1, right = x == Width - 2;
+            bool left = x == RoomLeft, right = x == RoomRight;
             if (y == 2)
             {
                 foreach (var (px, code) in LowerWallProps)
@@ -283,17 +300,18 @@ namespace Platformer.EditorTools
                 case 0:
                     return Corridor(x == 0 ? "6a1a" : x == last ? "6a3a" : "6a2a");
             }
-            // 좌우 벽: 바닥판 끝 타일을 세워 쌓는다 (테두리가 방 안쪽을 향하게)
-            return Corridor(x == 0 ? "5a3a" : "5a1a");
+            // 좌우 벽과 통로 위 막힌 곳: 바닥판 끝 타일을 세워 쌓는다 (테두리가 방 안쪽을 향하게)
+            return Corridor(x < RoomLeft ? "5a3a" : "5a1a");
         }
 
-        // 바닥면은 a 묶음(0~9) · b 묶음(10~17) · a 묶음(18~29)으로 나눠 끝 타일이 이어지게 한다
+        // 바닥면은 10칸씩 a 묶음과 b 묶음을 번갈아 놓아 끝 타일이 이어지게 한다
         static string FloorCode(int x)
         {
-            if (x >= 10 && x <= 17)
-                return x == 10 ? "5b1a" : x == 17 ? "5b3a" : x % 2 == 0 ? "5b2a" : "5b2b";
+            int segment = x / 10;
+            int start = segment * 10, end = Mathf.Min(start + 9, Width - 1);
+            if (segment % 2 == 1)
+                return x == start ? "5b1a" : x == end ? "5b3a" : x % 2 == 0 ? "5b2a" : "5b2b";
 
-            int start = x < 10 ? 0 : 18, end = x < 10 ? 9 : Width - 1;
             if (x == start) return "5a1a";
             if (x == end) return "5a3a";
             return new[] { "5a2a", "5a2b", "5a2c", "5a2d" }[(x - start) % 4];
@@ -458,6 +476,13 @@ namespace Platformer.EditorTools
                 s.FindProperty("passThroughLayers").intValue = LayerMask.GetMask("Enemy");
             });
 
+            Configure(player.AddComponent<PlayerCounter>(), s =>
+            {
+                s.FindProperty("settings").objectReferenceValue = LoadOrCreate<PlayerCounterSettings>("PlayerCounterSettings", _ => { });
+                s.FindProperty("enemyLayers").intValue = LayerMask.GetMask("Enemy");
+                s.FindProperty("shardSprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(HealthShardSpritePath);
+            });
+
             return movement;
         }
 
@@ -478,20 +503,288 @@ namespace Platformer.EditorTools
 
         // ───────── 적 ─────────
 
-        // 'E' 표식마다 E1 러너를 하나씩 세운다
-        static void BuildTestEnemies()
+        // 적 프리팹 3종을 만들어 저장한다 (다시 만들어도 같은 파일을 덮어써 GUID가 유지된다).
+        // 러너와 브루트는 같은 행동(EnemyRunner)에 설정·그림·크기만 다르다
+        static (GameObject runner, GameObject brute, GameObject infected) BuildEnemyPrefabs()
         {
-            var root = new GameObject("TestEnemies").transform;
-            var settings = LoadRunnerSettings();
-            foreach (Vector2 marker in FindMarkers('E'))
-                CreateRunner(root, marker, settings);
+            GameObject runner = SaveEnemyPrefab(CreateRunner(LoadRunnerSettings(), "Runner", RunnerSize, 1f));
+            GameObject brute = SaveEnemyPrefab(CreateRunner(LoadBruteSettings(), "Brute", BruteSize, BruteScale));
+            var shooterSettings = LoadOrCreate<EnemyShooterSettings>("EnemyInfectedSettings", s =>
+            {
+                s.FindProperty("maxHealth").intValue = 40;
+                s.FindProperty("contactDamage").intValue = 5;
+            });
+            GameObject infected = SaveEnemyPrefab(CreateShooter(shooterSettings));
+            return (runner, brute, infected);
         }
 
-        static void CreateRunner(Transform root, Vector2 feet, EnemyRunnerSettings settings)
+        static GameObject SaveEnemyPrefab(GameObject instance)
         {
-            var enemy = new GameObject("Runner") { layer = RequireLayer("Enemy") };
-            enemy.transform.SetParent(root, false);
-            enemy.transform.position = feet + new Vector2(0f, RunnerSize.y * 0.5f);
+            string path = $"{EnemyPrefabFolder}/{instance.name}.prefab";
+            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(instance, path);
+            Object.DestroyImmediate(instance);
+            return prefab;
+        }
+
+        // ───────── 방 ─────────
+
+        // 소탕 방: 문('D'), 출현 지점('1'~'9'), 시작 영역, 웨이브 데이터를 묶는다
+        static void BuildRoom()
+        {
+            var prefabs = BuildEnemyPrefabs();
+            var roomObject = new GameObject("Room");
+            var room = roomObject.AddComponent<Room>();
+
+            RoomDoor[] doors = BuildDoors(roomObject.transform);
+            Destructible[] props = BuildProps(roomObject.transform);
+
+            var points = new System.Collections.Generic.List<Transform>();
+            for (char marker = '1'; marker <= '9'; marker++)
+            {
+                foreach (Vector2 feet in FindMarkers(marker))
+                {
+                    var point = new GameObject($"SpawnPoint_{marker}").transform;
+                    point.SetParent(roomObject.transform, false);
+                    point.position = feet;
+                    points.Add(point);
+                }
+            }
+
+            // 부활 위치: 왼쪽 출입구 바깥 통로 (발 위치)
+            var respawn = new GameObject("RespawnPoint").transform;
+            respawn.SetParent(roomObject.transform, false);
+            respawn.position = new Vector2(RoomLeft - 2.5f, 2f);
+
+            float roomLeftEdge = RoomLeft;
+            var activation = new Rect(roomLeftEdge + ActivationInset, 2f, RoomRight + 1 - roomLeftEdge - ActivationInset, TopY - 3);
+
+            Configure(room, s =>
+            {
+                s.FindProperty("waveData").objectReferenceValue = LoadWaveData(prefabs.runner, prefabs.brute, prefabs.infected);
+                SetArray(s.FindProperty("doors"), doors);
+                SetArray(s.FindProperty("spawnPoints"), points.ToArray());
+                s.FindProperty("activationArea").rectValue = activation;
+                s.FindProperty("respawnPoint").objectReferenceValue = respawn;
+                SetArray(s.FindProperty("props"), props);
+            });
+        }
+
+        // ───────── 환경 요소 (GDD 4.7) ─────────
+
+        static readonly string[] CrateSprites = { "1a1a", "2a1a", "1e1a", "1b1a" };
+        static readonly Vector2 CrateSize = new(0.5f, 0.5f);
+        // 가스탱크 그림 몸통 약 38 x 44px
+        static readonly Vector2 GasTankSize = new(0.6f, 0.65f);
+
+        // 'C' 칸마다 상자 2개, 'G' 칸마다 가스탱크 하나
+        static Destructible[] BuildProps(Transform parent)
+        {
+            var props = new System.Collections.Generic.List<Destructible>();
+            EnsureFolder($"{DataFolder}/Props");
+
+            var crateSettings = LoadOrCreate<DestructibleSettings>("Props/Crate", s =>
+            {
+                s.FindProperty("maxHealth").intValue = 30;
+                s.FindProperty("explodes").boolValue = false;
+            });
+            int crateIndex = 0;
+            foreach (Vector2 feet in FindMarkers('C'))
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    var crateFeet = new Vector2(feet.x - 0.25f + i * 0.5f, feet.y);
+                    string sprite = $"Box_{CrateSprites[crateIndex++ % CrateSprites.Length]}";
+                    // 상자는 지형 레이어: 플레이어·적·탄을 막는 엄폐물이고 위에 올라설 수 있다
+                    props.Add(CreateProp(parent, "Crate", crateFeet, CrateSize, sprite, "Ground", crateSettings));
+                }
+            }
+
+            var tankSettings = LoadOrCreate<DestructibleSettings>("Props/GasTank", s =>
+            {
+                s.FindProperty("maxHealth").intValue = 10;
+                s.FindProperty("explodes").boolValue = true;
+            });
+            foreach (Vector2 feet in FindMarkers('G'))
+            {
+                // 가스탱크는 적 레이어: 플레이어 탄에만 맞고 적 탄에는 맞지 않는다
+                Destructible tank = CreateProp(parent, "GasTank", feet, GasTankSize, "GasTank", "Enemy", tankSettings);
+                Configure(tank, s =>
+                {
+                    SerializedProperty clip = s.FindProperty("explosionEffect");
+                    clip.FindPropertyRelative("sheet").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Texture2D>(ExplosionSheetPath);
+                    // 폭발 시트: 칸 57x84 (착탄 이펙트 3배), 4프레임
+                    clip.FindPropertyRelative("cellWidth").intValue = 57;
+                    clip.FindPropertyRelative("pivotX").intValue = 28;
+                    clip.FindPropertyRelative("framesPerSecond").floatValue = 14f;
+                });
+                props.Add(tank);
+            }
+            return props.ToArray();
+        }
+
+        static Destructible CreateProp(Transform parent, string propName, Vector2 feet, Vector2 size, string spriteName,
+            string layer, DestructibleSettings settings)
+        {
+            var go = new GameObject(propName) { layer = RequireLayer(layer) };
+            go.transform.SetParent(parent, false);
+            go.transform.position = feet + new Vector2(0f, size.y * 0.5f);
+            go.AddComponent<BoxCollider2D>().size = size;
+
+            // 소품 그림은 피벗이 아래 중앙이다
+            SpriteRenderer sprite = CreateChildSprite(go, "Visual", "Props");
+            sprite.transform.localPosition = new Vector3(0f, -size.y * 0.5f, 0f);
+            sprite.sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{PropsFolder}{spriteName}.png");
+
+            go.AddComponent<Health>();
+            var destructible = go.AddComponent<Destructible>();
+            Configure(destructible, s =>
+            {
+                s.FindProperty("settings").objectReferenceValue = settings;
+                s.FindProperty("explosionLayers").intValue = LayerMask.GetMask("Player", "Enemy", "Ground");
+                s.FindProperty("playerLayers").intValue = LayerMask.GetMask("Player");
+            });
+            return destructible;
+        }
+
+        // 세로로 이어진 'D' 칸마다 차단 블록 하나: 지형 레이어 충돌체 + 닫혔을 때 보이는 벽 블록 그림.
+        // 문 그림은 닫혀 있는 것처럼 보이지 않아, 방 벽과 같은 블록으로 출입구를 메운다 (2026-10-27 사용자 요청)
+        static RoomDoor[] BuildDoors(Transform parent)
+        {
+            var doors = new System.Collections.Generic.List<RoomDoor>();
+            for (int x = 0; x < Width; x++)
+            {
+                int row = 0;
+                while (row < Height)
+                {
+                    if (Layout[row][x] != 'D') { row++; continue; }
+                    int topRow = row;
+                    while (row < Height && Layout[row][x] == 'D') row++;
+                    int bottomY = TopY - (row - 1), topY = TopY - topRow;
+                    doors.Add(BuildDoor(parent, x, bottomY, topY));
+                }
+            }
+            return doors.ToArray();
+        }
+
+        static RoomDoor BuildDoor(Transform parent, int x, int bottomY, int topY)
+        {
+            int height = topY - bottomY + 1;
+            var go = new GameObject($"Door_{x}") { layer = RequireLayer("Ground") };
+            go.transform.SetParent(parent, false);
+            go.transform.position = new Vector3(x + 0.5f, bottomY + height * 0.5f, 0f);
+            go.AddComponent<BoxCollider2D>().size = new Vector2(1f, height);
+
+            var sprites = new SpriteRenderer[height];
+            for (int i = 0; i < height; i++)
+            {
+                var cell = new GameObject($"Cell_{i}");
+                cell.transform.SetParent(go.transform, false);
+                cell.transform.localPosition = new Vector3(0f, -height * 0.5f + i + 0.5f, 0f);
+                var renderer = cell.AddComponent<SpriteRenderer>();
+                // 바로 위·아래 벽과 같은 타일 (SolidCode의 좌우 벽 규칙)
+                string code = x < RoomLeft ? "5a3a" : "5a1a";
+                renderer.sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{TileArtFolder}{Corridor(code)}.png");
+                renderer.sortingLayerName = "Tiles";
+                sprites[i] = renderer;
+            }
+
+            var door = go.AddComponent<RoomDoor>();
+            Configure(door, s =>
+            {
+                SetArray(s.FindProperty("closedSprites"), sprites);
+                s.FindProperty("startOpen").boolValue = true;
+            });
+            return door;
+        }
+
+        // 테스트 방 웨이브 (없을 때만 만든다. 이후 Inspector에서 고친 내용은 유지)
+        // 출현 지점: 0 = 바닥 오른쪽, 1 = 바닥 계단 옆, 2 = 가운데 발판, 3 = 오른쪽 낮은 발판
+        static RoomWaveData LoadWaveData(GameObject runner, GameObject brute, GameObject infected)
+        {
+            EnsureFolder($"{DataFolder}/Rooms");
+            return LoadOrCreate<RoomWaveData>("Rooms/TestArena_Waves", s =>
+            {
+                var waves = new[]
+                {
+                    (advance: 0, spawns: new[] { (runner, 0, 0f), (runner, 2, 0.5f) }),
+                    (advance: 1, spawns: new[] { (infected, 3, 0f), (runner, 1, 0.3f), (runner, 0, 1f) }),
+                    (advance: 0, spawns: new[] { (brute, 1, 0f), (runner, 0, 0.8f), (runner, 2, 1.6f) }),
+                };
+
+                SerializedProperty waveArray = s.FindProperty("waves");
+                waveArray.arraySize = waves.Length;
+                for (int i = 0; i < waves.Length; i++)
+                {
+                    SerializedProperty wave = waveArray.GetArrayElementAtIndex(i);
+                    wave.FindPropertyRelative("advanceWhenRemaining").intValue = waves[i].advance;
+                    SerializedProperty spawnArray = wave.FindPropertyRelative("spawns");
+                    spawnArray.arraySize = waves[i].spawns.Length;
+                    for (int j = 0; j < waves[i].spawns.Length; j++)
+                    {
+                        var (prefab, point, delay) = waves[i].spawns[j];
+                        SerializedProperty spawn = spawnArray.GetArrayElementAtIndex(j);
+                        spawn.FindPropertyRelative("enemyPrefab").objectReferenceValue = prefab;
+                        spawn.FindPropertyRelative("spawnPoint").intValue = point;
+                        spawn.FindPropertyRelative("delay").floatValue = delay;
+                    }
+                }
+            });
+        }
+
+        static void SetArray(SerializedProperty array, Object[] values)
+        {
+            array.arraySize = values.Length;
+            for (int i = 0; i < values.Length; i++)
+                array.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+        }
+
+        // E5 감염 병사: 해병과 같은 크기, 녹색 해병 그림. 저장용 인스턴스를 만들어 돌려준다
+        static GameObject CreateShooter(EnemyShooterSettings settings)
+        {
+            var enemy = new GameObject("Infected") { layer = RequireLayer("Enemy") };
+
+            var body = enemy.AddComponent<Rigidbody2D>();
+            body.mass = 5f;
+            body.gravityScale = 3f;
+            body.interpolation = RigidbodyInterpolation2D.Interpolate;
+            body.sharedMaterial = LoadOrCreateNoFriction();
+            enemy.AddComponent<BoxCollider2D>().size = PlayerSize;
+
+            SpriteRenderer sprite = CreateChildSprite(enemy, "Visual", "Characters");
+            sprite.transform.localPosition = new Vector3(0f, -PlayerSize.y * 0.5f, 0f);
+            SpriteRenderer overlay = CreateChildSprite(enemy, "Overlay", "Characters");
+            overlay.transform.localPosition = sprite.transform.localPosition;
+            overlay.sortingOrder = 1;
+            overlay.enabled = false;
+
+            enemy.AddComponent<Health>();
+            Configure(enemy.AddComponent<Enemy>(), s =>
+            {
+                s.FindProperty("settings").objectReferenceValue = settings;
+                s.FindProperty("spriteRenderer").objectReferenceValue = null;
+                s.FindProperty("contactTargets").intValue = LayerMask.GetMask("Player");
+            });
+            Configure(enemy.AddComponent<EnemyShooter>(), s =>
+            {
+                s.FindProperty("settings").objectReferenceValue = settings;
+                s.FindProperty("groundLayers").intValue = LayerMask.GetMask("Ground", "OneWay");
+                s.FindProperty("bulletHitLayers").intValue = LayerMask.GetMask("Ground", "Player");
+                s.FindProperty("bulletSprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(PlaceholderSpritePath);
+                s.FindProperty("spriteRenderer").objectReferenceValue = sprite;
+                s.FindProperty("overlayRenderer").objectReferenceValue = overlay;
+                // 해병 계열 시트는 칸 64x64, 발 중앙 x = 32
+                SetEnemyClip(s, "idle", "Infected", "Idle", 4f, 64, 32);
+                SetEnemyClip(s, "run", "Infected", "Run", 10f, 64, 32);
+                SetEnemyClip(s, "shoot", "Infected", "Shoot", 0f, 64, 32);
+                SetEnemyClip(s, "die", "Infected", "Die", 10f, 64, 32);
+            });
+            return enemy;
+        }
+
+        // 러너·브루트 저장용 인스턴스를 만들어 돌려준다
+        static GameObject CreateRunner(EnemyRunnerSettings settings, string enemyName, Vector2 size, float visualScale)
+        {
+            var enemy = new GameObject(enemyName) { layer = RequireLayer("Enemy") };
 
             var body = enemy.AddComponent<Rigidbody2D>();
             // 플레이어가 밀어도 잘 밀리지 않도록 무겁게, 벽에 붙어 멈추지 않도록 마찰 0
@@ -499,13 +792,15 @@ namespace Platformer.EditorTools
             body.gravityScale = 3f;
             body.interpolation = RigidbodyInterpolation2D.Interpolate;
             body.sharedMaterial = LoadOrCreateNoFriction();
-            enemy.AddComponent<BoxCollider2D>().size = RunnerSize;
+            enemy.AddComponent<BoxCollider2D>().size = size;
 
             // 그림 피벗(발)을 충돌체 바닥에 맞춘다. 실루엣은 몸 그림 바로 위에 겹친다
             SpriteRenderer sprite = CreateChildSprite(enemy, "Visual", "Characters");
-            sprite.transform.localPosition = new Vector3(0f, -RunnerSize.y * 0.5f, 0f);
+            sprite.transform.localPosition = new Vector3(0f, -size.y * 0.5f, 0f);
+            sprite.transform.localScale = new Vector3(visualScale, visualScale, 1f);
             SpriteRenderer overlay = CreateChildSprite(enemy, "Overlay", "Characters");
             overlay.transform.localPosition = sprite.transform.localPosition;
+            overlay.transform.localScale = sprite.transform.localScale;
             overlay.sortingOrder = 1;
             overlay.enabled = false;
 
@@ -524,15 +819,17 @@ namespace Platformer.EditorTools
                 s.FindProperty("targetLayers").intValue = LayerMask.GetMask("Player");
                 s.FindProperty("spriteRenderer").objectReferenceValue = sprite;
                 s.FindProperty("overlayRenderer").objectReferenceValue = overlay;
-                SetEnemyClip(s, "idle", "Runner", "Idle", 3f);
-                SetEnemyClip(s, "run", "Runner", "Run", 12f);
-                SetEnemyClip(s, "bite", "Runner", "Bite", 0f);
-                SetEnemyClip(s, "die", "Runner", "Die", 10f);
+                SetEnemyClip(s, "idle", enemyName, "Idle", 3f);
+                SetEnemyClip(s, "run", enemyName, "Run", 12f);
+                SetEnemyClip(s, "bite", enemyName, "Bite", 0f);
+                SetEnemyClip(s, "die", enemyName, "Die", 10f);
             });
+            return enemy;
         }
 
-        // 외계 생물 계열 시트는 칸 128x64, 발 중앙 x = 64
-        static void SetEnemyClip(SerializedObject component, string field, string enemyName, string clipName, float framesPerSecond)
+        // 외계 생물 계열 시트는 칸 128x64, 발 중앙 x = 64 (기본값)
+        static void SetEnemyClip(SerializedObject component, string field, string enemyName, string clipName, float framesPerSecond,
+            int cellWidth = 128, int pivotX = 64)
         {
             string basePath = $"{EnemyArtFolder}{enemyName}/{enemyName}_{clipName}";
             var sheet = AssetDatabase.LoadAssetAtPath<Texture2D>($"{basePath}.png");
@@ -542,8 +839,8 @@ namespace Platformer.EditorTools
             SerializedProperty clip = component.FindProperty(field);
             clip.FindPropertyRelative("sheet").objectReferenceValue = sheet;
             clip.FindPropertyRelative("whiteSheet").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Texture2D>($"{basePath}_White.png");
-            clip.FindPropertyRelative("cellWidth").intValue = 128;
-            clip.FindPropertyRelative("pivotX").intValue = 64;
+            clip.FindPropertyRelative("cellWidth").intValue = cellWidth;
+            clip.FindPropertyRelative("pivotX").intValue = pivotX;
             clip.FindPropertyRelative("framesPerSecond").floatValue = framesPerSecond;
         }
 
@@ -684,6 +981,26 @@ namespace Platformer.EditorTools
             s.FindProperty("lookAheadDistance").floatValue = 1.5f;
             s.FindProperty("verticalDeadZone").floatValue = 1f;
             s.FindProperty("verticalOffset").floatValue = 0.5f;
+        });
+
+        // E2 브루트 (GDD 4.6): 느리고 단단하다. 정면 사격이 잘 안 먹혀 카운터가 주 공략법이다
+        static EnemyRunnerSettings LoadBruteSettings() => LoadOrCreate<EnemyRunnerSettings>("EnemyBruteSettings", s =>
+        {
+            s.FindProperty("maxHealth").intValue = 120;
+            s.FindProperty("contactDamage").intValue = 10;
+            s.FindProperty("deathDuration").floatValue = 0.6f;
+            s.FindProperty("knockbackScale").floatValue = 0.5f;
+            s.FindProperty("frontDamageMultiplier").floatValue = 0.3f;
+            s.FindProperty("chaseSpeed").floatValue = 1.8f;
+            s.FindProperty("attackRange").floatValue = 0.6f;
+            s.FindProperty("windupTime").floatValue = 0.8f;
+            s.FindProperty("signalTime").floatValue = 0.3f;
+            s.FindProperty("lungeSpeed").floatValue = 5f;
+            s.FindProperty("lungeTime").floatValue = 0.2f;
+            s.FindProperty("biteDamage").intValue = 25;
+            s.FindProperty("biteKnockbackScale").floatValue = 2f;
+            s.FindProperty("biteSize").vector2Value = new Vector2(0.75f, 0.75f);
+            s.FindProperty("recoverTime").floatValue = 1f;
         });
 
         // 러너는 물기(카운터 대상)가 주 공격이므로 몸 접촉 피해는 낮게 둔다
