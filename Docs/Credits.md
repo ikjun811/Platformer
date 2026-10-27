@@ -5,7 +5,7 @@
 ## Creative Commons 에셋
 | 에셋 | 제작자 | 출처 | 라이선스 | 위치 | 쓰는 곳 |
 |---|---|---|---|---|---|
-| Sci-Fi art pack (PROCJAM) | **Marsh Davies** (PROCJAM 커뮤니티 후원) | https://procjam.itch.io | **CC BY-NC 3.0** (저작자 표시, 비상업). 원문 `Assets/marsh-sci-fi/license.txt` | `Assets/marsh-sci-fi/` | 타일, 소품, 플레이어(해병), 적(외계 생물), 이펙트 전부 (GDD v2) |
+| Sci-Fi art pack (PROCJAM) | **Marsh Davies** (PROCJAM 커뮤니티 후원) | https://procjam.itch.io | **CC BY-NC 3.0** (저작자 표시, 비상업). 원문 `Docs/ArtSources/marsh-sci-fi/license.txt` | 원본 `Docs/ArtSources/marsh-sci-fi/`, 변환본 `Assets/_Project/Art/` | 타일, 소품, 플레이어(해병), 적(외계 생물), 이펙트 전부 (GDD v2) |
 
 - 게임 크레딧 화면에 "Art by Marsh Davies (PROCJAM), CC BY-NC 3.0"을 표기한다.
 - 색 변형, 크기 변경 등으로 가공한 파일은 "원본을 수정함"을 이 문서와 크레딧에 밝힌다 (라이선스 3(b)).
