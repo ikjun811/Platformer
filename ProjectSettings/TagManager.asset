@@ -41,5 +41,26 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: Background
+    uniqueID: 65825284
+    locked: 0
+  - name: Tiles
+    uniqueID: 194121470
+    locked: 0
+  - name: Props
+    uniqueID: 1041643276
+    locked: 0
+  - name: Characters
+    uniqueID: 109153614
+    locked: 0
+  - name: Projectiles
+    uniqueID: 1725780993
+    locked: 0
+  - name: FX
+    uniqueID: 2099477515
+    locked: 0
+  - name: UI
+    uniqueID: 1912775369
+    locked: 0
   m_RenderingLayers:
   - Default

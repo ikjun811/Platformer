@@ -201,11 +201,11 @@
 - Unity 6000.3.26f1, URP 2D, 새 Input System
 - **게임 단위**: 1타일 = 1유닛 = 64px
 - **스프라이트**: PPU 64, Filter Mode = Point, 압축 없음, 피벗 = 발 중앙 (캐릭터) / 왼쪽 아래 (타일)
-- **카메라**: Pixel Perfect Camera, 기준 해상도 **640x360** (가로 10타일 x 세로 5.625타일). 720p 2배, 1080p 3배, 1440p 4배, 4K 6배로 정수 확대된다
+- **카메라**: Pixel Perfect Camera, 기준 해상도 **640x360** (가로 10타일 x 세로 5.625타일). 720p 2배, 1080p 3배, 1440p 4배, 4K 6배로 정수 확대된다. Crop Frame = Windowbox (정수배가 아닌 창에서는 검은 테두리로 보이는 범위를 유지), Grid Snapping = Pixel Snapping. 메뉴 `Tools/Platformer/Setup/Pixel Perfect Camera (Current Scene)`
 - **캐릭터 크기 참고**: 해병 키 약 41px(0.64타일), 외계 생물 몸길이 약 110px(1.7타일)
 - **이동 수치**: 이전 수치(키 2.25타일 기준)는 쓰지 않는다. 새 캐릭터 크기에 맞춰 다시 정한다 (N1)
 - **레이어**: Ground, OneWay, Player, Enemy, PlayerProjectile, EnemyProjectile, Interactable, Room (유지). 파괴 오브젝트용 레이어 추가는 N4에서 검토한다 (Project Settings 변경이라 승인 필요)
-- **소팅 레이어 (N0에서 설정)**: Background, Tiles, Props, Characters, Projectiles, FX, UI
+- **소팅 레이어**: Default → Background → Tiles → Props → Characters → Projectiles → FX → UI (뒤일수록 앞에 그려짐). 메뉴 `Tools/Platformer/Setup/Sorting Layers`
 - **태그**: Player 외에는 쓰지 않는다. 판별은 컴포넌트와 레이어로 한다
 - **밸런스 데이터**: ScriptableObject (`Assets/_Project/Data/`)
 - **저장**: JSON 파일 (`Application.persistentDataPath`)
