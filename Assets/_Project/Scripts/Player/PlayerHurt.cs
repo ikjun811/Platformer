@@ -24,8 +24,6 @@ namespace Platformer.Player
         PlayerMovement movement;
         Rigidbody2D body;
         BoxCollider2D box;
-        PlayerSlide slide;
-        PlayerLedgeGrab ledge;
 
         Vector2 spawnPosition;
         Vector2 lastSafePosition;
@@ -41,8 +39,6 @@ namespace Platformer.Player
             movement = GetComponent<PlayerMovement>();
             body = GetComponent<Rigidbody2D>();
             box = GetComponent<BoxCollider2D>();
-            slide = GetComponent<PlayerSlide>();
-            ledge = GetComponent<PlayerLedgeGrab>();
 
             health.SetMax(settings.MaxEnergy, true);
             spawnPosition = lastSafePosition = body.position;
@@ -84,8 +80,6 @@ namespace Platformer.Player
             Debug.Log($"[PlayerHurt] 피해 {damage.Amount} → 에너지 {health.Current}/{health.Max}");
 
             health.SetInvulnerable(settings.InvulnerableTime);
-            if (ledge != null)
-                ledge.CancelHang();
 
             if (damage.IsHazard)
             {
@@ -93,9 +87,6 @@ namespace Platformer.Player
                 movement.Stun(settings.StunTime);
                 return;
             }
-
-            // 슬라이드 중에는 밀려나지 않는다 (낮은 통로에서 튕겨 나가 끼지 않도록)
-            if (slide != null && slide.IsSliding) return;
 
             int direction = body.position.x >= damage.SourcePosition.x ? 1 : -1;
             Vector2 knockback = settings.KnockbackVelocity;

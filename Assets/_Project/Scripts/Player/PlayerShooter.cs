@@ -5,11 +5,11 @@ using UnityEngine.Pool;
 namespace Platformer.Player
 {
     /// <summary>
-    /// 빔 사격과 차지 빔 (드레드 방식).
-    /// J를 누르는 순간 일반 빔을 쏘고 충전을 시작한다. 충전 시간 이상 누르고 있다가 떼면 차지 빔을 쏜다.
+    /// 수평 사격과 차지 샷 (GDD v2 4.3). 바라보는 방향으로만 쏜다. 과열·무기 모듈은 N2에서 추가한다.
+    /// J를 누르는 순간 일반 탄을 쏘고 충전을 시작한다. 충전 시간 이상 누르고 있다가 떼면 차지 샷을 쏜다.
     /// 다 차기 전에 떼면 충전이 사라진다. 빔 오브젝트는 종류별 풀에 모아 두고 재사용한다.
     /// </summary>
-    [RequireComponent(typeof(PlayerAim), typeof(PlayerMovement), typeof(PlayerInputReader))]
+    [RequireComponent(typeof(BoxCollider2D), typeof(PlayerMovement), typeof(PlayerInputReader))]
     public class PlayerShooter : MonoBehaviour
     {
         // 짧게 누른 사격마다 충전 표시가 깜빡이지 않도록, 이 시간 이상 누르고 있을 때부터 보여준다 (초)
@@ -25,7 +25,7 @@ namespace Platformer.Player
         [Tooltip("임시 충전 표시. 총구 위치에서 충전량만큼 커지고, 다 차면 깜빡인다 (아트 적용 후 교체)")]
         [SerializeField] SpriteRenderer chargeEffect;
 
-        PlayerAim aim;
+        BoxCollider2D box;
         PlayerMovement movement;
         PlayerInputReader input;
 
@@ -40,6 +40,20 @@ namespace Platformer.Player
         /// <summary>충전량 0~1. 1이면 떼는 순간 차지 빔이 나간다</summary>
         public float ChargeProgress => charging ? Mathf.Clamp01((Time.time - chargeStartTime) / settings.ChargeTime) : 0f;
 
+        /// <summary>사격 방향 (바라보는 방향의 수평)</summary>
+        public Vector2 Direction => new(movement.FacingDirection, 0f);
+
+        /// <summary>탄이 나가는 위치: 충돌체 윗면에서 어깨 깊이만큼 내려간 곳에서 바라보는 방향으로 총구 거리만큼 앞</summary>
+        public Vector2 MuzzlePosition
+        {
+            get
+            {
+                Bounds b = box.bounds;
+                var shoulder = new Vector2(b.center.x, b.max.y - settings.ShoulderDepth);
+                return shoulder + Direction * settings.MuzzleDistance;
+            }
+        }
+
         void Reset()
         {
             hitLayers = LayerMask.GetMask("Ground", "Enemy");
@@ -47,7 +61,7 @@ namespace Platformer.Player
 
         void Awake()
         {
-            aim = GetComponent<PlayerAim>();
+            box = GetComponent<BoxCollider2D>();
             movement = GetComponent<PlayerMovement>();
             input = GetComponent<PlayerInputReader>();
 
@@ -93,7 +107,7 @@ namespace Platformer.Player
 
             float progress = ChargeProgress;
             float size = Mathf.Lerp(0.15f, 0.5f, progress);
-            chargeEffect.transform.position = aim.MuzzlePosition;
+            chargeEffect.transform.position = MuzzlePosition;
             chargeEffect.transform.localScale = new Vector3(size, size, 1f);
 
             Color color = chargeBeamColor;
@@ -106,17 +120,17 @@ namespace Platformer.Player
             if (movement.ControlLocked || Time.time < nextFireTime) return;
 
             nextFireTime = Time.time + settings.FireCooldown;
-            beamPool.Get().Launch(aim.MuzzlePosition, aim.Direction, settings.BeamSpeed, settings.BeamRange, settings.BeamRadius,
+            beamPool.Get().Launch(MuzzlePosition, Direction, settings.BeamSpeed, settings.BeamRange, settings.BeamRadius,
                 settings.BeamDamage, hitLayers);
         }
 
         void FireChargeBeam()
         {
-            // 매달린 동안 다 찬 충전을 떼면 쏘지 못하고 사라진다
+            // 조작이 잠긴 동안(대시 등) 다 찬 충전을 떼면 쏘지 못하고 사라진다
             if (movement.ControlLocked) return;
 
             nextFireTime = Time.time + settings.FireCooldown;
-            chargeBeamPool.Get().Launch(aim.MuzzlePosition, aim.Direction, settings.ChargeBeamSpeed, settings.ChargeBeamRange, settings.ChargeBeamRadius,
+            chargeBeamPool.Get().Launch(MuzzlePosition, Direction, settings.ChargeBeamSpeed, settings.ChargeBeamRange, settings.ChargeBeamRadius,
                 settings.ChargeBeamDamage, hitLayers);
         }
 

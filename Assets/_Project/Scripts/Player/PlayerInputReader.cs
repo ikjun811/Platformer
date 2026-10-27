@@ -16,7 +16,8 @@ namespace Platformer.Player
         InputAction moveAction;
         InputAction jumpAction;
         InputAction fireAction;
-        InputAction aimLockAction;
+        InputAction dashAction;
+        InputAction swapWeaponAction;
 
         /// <summary>좌우 입력: -1, 0, 1</summary>
         public int Horizontal { get; private set; }
@@ -45,8 +46,11 @@ namespace Platformer.Player
         /// <summary>이번 프레임에 사격(J)을 뗐는지 (차지 빔 발사용)</summary>
         public bool FireReleasedThisFrame { get; private set; }
 
-        /// <summary>제자리 조준(Left Shift)을 누르고 있는지</summary>
-        public bool AimLockHeld { get; private set; }
+        /// <summary>이번 프레임에 페이즈 대시(L)를 새로 눌렀는지</summary>
+        public bool DashPressedThisFrame { get; private set; }
+
+        /// <summary>이번 프레임에 무기 모듈 교체(Q)를 새로 눌렀는지</summary>
+        public bool SwapWeaponPressedThisFrame { get; private set; }
 
         /// <summary>점프 키를 마지막으로 누른 시각 (점프 입력 버퍼용)</summary>
         public float LastJumpPressedTime { get; private set; } = float.NegativeInfinity;
@@ -56,7 +60,8 @@ namespace Platformer.Player
             moveAction = InputSystem.actions.FindAction("Player/Move", true);
             jumpAction = InputSystem.actions.FindAction("Player/Jump", true);
             fireAction = InputSystem.actions.FindAction("Player/Fire", true);
-            aimLockAction = InputSystem.actions.FindAction("Player/AimLock", true);
+            dashAction = InputSystem.actions.FindAction("Player/Dash", true);
+            swapWeaponAction = InputSystem.actions.FindAction("Player/SwapWeapon", true);
         }
 
         void OnEnable()
@@ -64,7 +69,8 @@ namespace Platformer.Player
             moveAction.Enable();
             jumpAction.Enable();
             fireAction.Enable();
-            aimLockAction.Enable();
+            dashAction.Enable();
+            swapWeaponAction.Enable();
         }
 
         void Update()
@@ -88,7 +94,8 @@ namespace Platformer.Player
             FireHeld = fireAction.IsPressed();
             FirePressedThisFrame = fireAction.WasPressedThisFrame();
             FireReleasedThisFrame = fireAction.WasReleasedThisFrame();
-            AimLockHeld = aimLockAction.IsPressed();
+            DashPressedThisFrame = dashAction.WasPressedThisFrame();
+            SwapWeaponPressedThisFrame = swapWeaponAction.WasPressedThisFrame();
         }
 
         /// <summary>버퍼된 점프 입력을 사용 처리한다 (한 번 누름에 한 번만 점프).</summary>

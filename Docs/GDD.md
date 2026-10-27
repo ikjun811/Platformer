@@ -226,8 +226,8 @@
 | 처리 | 대상 |
 |---|---|
 | 유지 | `PlayerInputReader`, `PlayerMovement`, `CameraFollow`, `Health`, `DamageInfo`, `DamageZone`, `PlayerHurt`, `Projectile`, `Enemy`, `EnemyPatrol`, 각 Settings SO, `ParallaxLayer` |
-| 수정 | `PlayerShooter` (수평 전용, 과열, 모듈), `PlayerAnimator` (새 프레임), `PixelArtImporter` (PPU 64·Point), `TestRoomBuilder` (새 타일), 입력 액션 (3.2) |
-| 제거 | `PlayerAim` (좌우 방향은 이동 쪽에서 처리), `PlayerLedgeGrab`, `PlayerCrouch`, `PlayerSlide` |
+| 수정 | `PlayerShooter` (수평 전용 — 완료 / 과열, 모듈 — N2), `PlayerAnimator` (앉기·슬라이드·난간 동작 삭제 — 완료 / 새 프레임 — N1), `PixelArtImporter` (PPU 64·Point — 완료), 입력 액션 (3.2 — 완료) |
+| 제거 (완료) | `PlayerAim` (사격 방향·총구 위치는 `PlayerShooter`로 옮김), `PlayerLedgeGrab`, `PlayerCrouch`, `PlayerSlide`, `TestRoomBuilder` (v1 테스트 방. 새 테스트 씬 빌더로 대체) |
 | 교체 | 이전 고해상도 플레이어 아트, 지형 타일, 패럴랙스 배경, `Tools/ArtPipeline` |
 
 ---
@@ -236,7 +236,7 @@
 
 이전 M0~M2에서 만든 기반(입력, 이동, 카메라, 체력·피격, 투사체, 적 기본형)을 이어 쓴다.
 
-- [ ] **N0 전환 정리**: 에셋 정리(원본을 `Docs/ArtSources/`로 이동, `__MACOSX`·zip 삭제 — 완료), 에셋 변환과 임포트 설정(`convert_marsh.py`, PPU 64·Point — 완료), Pixel Perfect Camera 640x360, 소팅 레이어, 입력 액션 개편, 쓰지 않는 스크립트·아트 제거, 새 타일로 테스트 방 재구성
+- [ ] **N0 전환 정리**: 에셋 정리(원본을 `Docs/ArtSources/`로 이동, `__MACOSX`·zip 삭제 — 완료), 에셋 변환과 임포트 설정(`convert_marsh.py`, PPU 64·Point — 완료), 화면 설정 메뉴(Pixel Perfect Camera 640x360, 소팅 레이어 — 완료), 입력 액션 개편과 쓰지 않는 스크립트 제거(완료), 새 테스트 씬(새 타일), 예전 아트·씬 정리
 - [ ] **N1 플레이어**: 이동 수치 재조정, 새 애니메이션 연결, 발판 내려가기, 페이즈 대시(3연속)
 - [ ] **N2 사격**: 수평 사격, 과열 게이지, 과열 배출, 차지 샷, 무기 모듈(W1·W2·W4)과 교체
 - [ ] **N3 적·카운터**: E1 러너(신호·물기), 카운터와 카운터 처치, E2 브루트, E5 감염 병사, 사망 연출·혈흔

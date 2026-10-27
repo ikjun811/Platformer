@@ -47,9 +47,9 @@
                     "priority": 0
                 },
                 {
-                    "name": "Missile",
+                    "name": "Dash",
                     "type": "Button",
-                    "id": "d3f8f073-58eb-4e10-be74-c085e2f0edc2",
+                    "id": "64dcad74-0d51-46c6-90ae-4a07856408d3",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -57,9 +57,9 @@
                     "priority": 0
                 },
                 {
-                    "name": "AimLock",
+                    "name": "SwapWeapon",
                     "type": "Button",
-                    "id": "ed33bcee-8968-4ac5-af48-9eaa0b01ebe5",
+                    "id": "18550d42-358d-42e7-8705-530f5ed2793d",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -70,16 +70,6 @@
                     "name": "Pause",
                     "type": "Button",
                     "id": "c95e1491-fb40-4b92-8970-a7a63f60d43b",
-                    "expectedControlType": "Button",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false,
-                    "priority": 0
-                },
-                {
-                    "name": "Map",
-                    "type": "Button",
-                    "id": "ff252113-bdaa-4b7b-ab0e-2c8ca149fb48",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -178,28 +168,6 @@
                 },
                 {
                     "name": "",
-                    "id": "f5053fae-d64f-41e5-8bc6-b9b3f5bb684a",
-                    "path": "<Keyboard>/l",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Keyboard&Mouse",
-                    "action": "Missile",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "a83c1ad4-7c97-4cd4-bbcb-0b772fb19da0",
-                    "path": "<Keyboard>/leftShift",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": ";Keyboard&Mouse",
-                    "action": "AimLock",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "603a239e-2e6f-4b15-9dc8-011dd1da8dfe",
                     "path": "<Keyboard>/escape",
                     "interactions": "",
@@ -211,12 +179,23 @@
                 },
                 {
                     "name": "",
-                    "id": "2e10708c-3409-460d-b287-aeec2dceab3f",
-                    "path": "<Keyboard>/tab",
+                    "id": "58fee3aa-7035-4703-8d5a-9228b6f022bd",
+                    "path": "<Keyboard>/l",
                     "interactions": "",
                     "processors": "",
                     "groups": ";Keyboard&Mouse",
-                    "action": "Map",
+                    "action": "Dash",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "3a0f08b9-ae10-4ac3-8885-8cdab605882e",
+                    "path": "<Keyboard>/q",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "SwapWeapon",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

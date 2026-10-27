@@ -33,28 +33,6 @@ namespace Platformer.Player
         [Tooltip("최대 낙하 속도 (타일/초)")]
         [SerializeField] float maxFallSpeed = 20f;
 
-        [Header("앉기")]
-        [Tooltip("앉았을 때 충돌체 높이 (타일). 서 있을 때 높이는 BoxCollider2D 크기를 따른다")]
-        [SerializeField] float crouchHeight = 1.5f;
-
-        [Header("슬라이드")]
-        [Tooltip("슬라이드 중 충돌체 높이 (타일). 높이 2타일 통로를 통과할 수 있어야 한다")]
-        [SerializeField] float slideHeight = 1.25f;
-        [Tooltip("슬라이드 속도 (타일/초)")]
-        [SerializeField] float slideSpeed = 13f;
-        [Tooltip("슬라이드 지속 시간 (초). 끝나도 머리 위가 막혀 있으면 계속 미끄러진다")]
-        [SerializeField] float slideDuration = 0.4f;
-        [Tooltip("이 속도 이상으로 달리는 중에 S를 눌러야 슬라이드한다 (타일/초). 느리면 앉기")]
-        [SerializeField] float slideMinStartSpeed = 6f;
-
-        [Header("난간 잡기")]
-        [Tooltip("머리 끝에서 아래로 이 범위 안에 모서리가 오면 잡는다 (타일)")]
-        [SerializeField] float ledgeGrabZone = 0.5f;
-        [Tooltip("기어오르기에 걸리는 시간 (초)")]
-        [SerializeField] float ledgeClimbDuration = 0.25f;
-        [Tooltip("손을 놓은 뒤 다시 잡을 수 없는 시간 (초)")]
-        [SerializeField] float ledgeRegrabDelay = 0.25f;
-
         [Header("조작 보정")]
         [Tooltip("발판에서 떨어진 뒤에도 점프할 수 있는 시간 (초)")]
         [SerializeField] float coyoteTime = 0.1f;
@@ -69,14 +47,6 @@ namespace Platformer.Player
         public float FallGravityMultiplier => fallGravityMultiplier;
         public float JumpCutGravityMultiplier => jumpCutGravityMultiplier;
         public float MaxFallSpeed => maxFallSpeed;
-        public float CrouchHeight => crouchHeight;
-        public float SlideHeight => slideHeight;
-        public float SlideSpeed => slideSpeed;
-        public float SlideDuration => slideDuration;
-        public float SlideMinStartSpeed => slideMinStartSpeed;
-        public float LedgeGrabZone => ledgeGrabZone;
-        public float LedgeClimbDuration => ledgeClimbDuration;
-        public float LedgeRegrabDelay => ledgeRegrabDelay;
         public float CoyoteTime => coyoteTime;
         public float JumpBufferTime => jumpBufferTime;
 
