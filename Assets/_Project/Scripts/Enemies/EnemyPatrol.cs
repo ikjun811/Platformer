@@ -22,6 +22,7 @@ namespace Platformer.Enemies
 
         Rigidbody2D body;
         BoxCollider2D box;
+        Enemy enemy;
         int direction;
 
         void Reset()
@@ -33,12 +34,16 @@ namespace Platformer.Enemies
         {
             body = GetComponent<Rigidbody2D>();
             box = GetComponent<BoxCollider2D>();
+            enemy = GetComponent<Enemy>();
             body.freezeRotation = true;
             direction = startDirection >= 0 ? 1 : -1;
         }
 
         void FixedUpdate()
         {
+            // 경직 중에는 밀려나는 속도를 덮어쓰지 않는다
+            if (enemy.IsStunned) return;
+
             bool grounded = CheckGround();
             if (grounded && ShouldTurn())
                 direction = -direction;

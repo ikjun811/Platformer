@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: acab8f97688934a4f9dd9abc8bff3542, type: 3}
+  m_Name: WeaponLoadout
+  m_EditorClassIdentifier: Platformer.Runtime::Platformer.Player.WeaponLoadout
+  modules:
+  - {fileID: 11400000, guid: ff518a6f3c8ccb0468733dee74dc8a02, type: 2}
+  - {fileID: 11400000, guid: b11c8631f22eee34b9ea08848688993a, type: 2}
+  - {fileID: 11400000, guid: 5418cc994a3d5eb48be474c4b803984a, type: 2}

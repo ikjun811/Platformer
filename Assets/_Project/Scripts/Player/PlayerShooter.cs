@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Platformer.Gameplay;
 using UnityEngine;
 using UnityEngine.Pool;
@@ -5,22 +6,27 @@ using UnityEngine.Pool;
 namespace Platformer.Player
 {
     /// <summary>
-    /// 수평 사격과 차지 샷 (GDD v2 4.3). 바라보는 방향으로만 쏜다. 과열·무기 모듈은 N2에서 추가한다.
-    /// J를 누르는 순간 일반 탄을 쏘고 충전을 시작한다. 충전 시간 이상 누르고 있다가 떼면 차지 샷을 쏜다.
-    /// 다 차기 전에 떼면 충전이 사라진다. 빔 오브젝트는 종류별 풀에 모아 두고 재사용한다.
+    /// 수평 사격, 무기 모듈, 차지 샷 (GDD v2 4.3). 바라보는 방향으로만 쏜다.
+    /// J를 누르는 순간 현재 모듈의 탄을 쏘고 충전을 시작한다. 충전 시간 이상 누르고 있다가 떼면 차지 샷을 쏜다.
+    /// 다 차기 전에 떼면 충전이 사라진다. 차지 샷은 모듈과 상관없이 공통이다.
+    /// Q를 누르면 장착 목록(WeaponLoadout)의 다음 모듈로 바꾼다.
+    /// 쏠 때마다 PlayerHeat에 열을 더하고, 과열 중에는 쏘지 못하며 사격 키는 배출 시도로 쓴다 (GDD 4.2).
+    /// 탄 오브젝트는 모듈별 풀에 모아 두고 재사용한다.
     /// </summary>
     [RequireComponent(typeof(BoxCollider2D), typeof(PlayerMovement), typeof(PlayerInputReader))]
+    [RequireComponent(typeof(PlayerHeat))]
     public class PlayerShooter : MonoBehaviour
     {
         // 짧게 누른 사격마다 충전 표시가 깜빡이지 않도록, 이 시간 이상 누르고 있을 때부터 보여준다 (초)
         const float ChargeEffectDelay = 0.15f;
 
         [SerializeField] PlayerCombatSettings settings;
-        [Tooltip("빔이 부딪히는 레이어")]
+        [Tooltip("쓸 수 있는 무기 모듈 목록. 첫 번째 모듈로 시작한다")]
+        [SerializeField] WeaponLoadout loadout;
+        [Tooltip("탄이 부딪히는 레이어")]
         [SerializeField] LayerMask hitLayers;
-        [Tooltip("임시 빔 스프라이트 (아트 적용 후 교체)")]
+        [Tooltip("임시 탄 스프라이트 (아트 적용 후 교체)")]
         [SerializeField] Sprite beamSprite;
-        [SerializeField] Color beamColor = new(1f, 0.9f, 0.3f);
         [SerializeField] Color chargeBeamColor = new(0.3f, 1f, 0.95f);
         [Tooltip("임시 충전 표시. 총구 위치에서 충전량만큼 커지고, 다 차면 깜빡인다 (아트 적용 후 교체)")]
         [SerializeField] SpriteRenderer chargeEffect;
@@ -28,16 +34,21 @@ namespace Platformer.Player
         BoxCollider2D box;
         PlayerMovement movement;
         PlayerInputReader input;
+        PlayerHeat heat;
 
-        ObjectPool<Projectile> beamPool;
+        readonly Dictionary<WeaponModule, ObjectPool<Projectile>> modulePools = new();
         ObjectPool<Projectile> chargeBeamPool;
         int projectileLayer;
+        int moduleIndex;
         float nextFireTime;
 
         bool charging;
         float chargeStartTime;
 
-        /// <summary>충전량 0~1. 1이면 떼는 순간 차지 빔이 나간다</summary>
+        /// <summary>현재 장착한 무기 모듈</summary>
+        public WeaponModule CurrentModule => loadout.Modules[moduleIndex];
+
+        /// <summary>충전량 0~1. 1이면 떼는 순간 차지 샷이 나간다</summary>
         public float ChargeProgress => charging ? Mathf.Clamp01((Time.time - chargeStartTime) / settings.ChargeTime) : 0f;
 
         /// <summary>사격 방향 (바라보는 방향의 수평)</summary>
@@ -64,23 +75,41 @@ namespace Platformer.Player
             box = GetComponent<BoxCollider2D>();
             movement = GetComponent<PlayerMovement>();
             input = GetComponent<PlayerInputReader>();
+            heat = GetComponent<PlayerHeat>();
 
             projectileLayer = LayerMask.NameToLayer("PlayerProjectile");
-            beamPool = CreatePool("Beam", settings.BeamLength, settings.BeamThickness, beamColor);
+            foreach (WeaponModule module in loadout.Modules)
+            {
+                if (!modulePools.ContainsKey(module))
+                    modulePools.Add(module, CreatePool(module.name, module.Length, module.Thickness, module.Color));
+            }
             chargeBeamPool = CreatePool("ChargeBeam", settings.ChargeBeamLength, settings.ChargeBeamThickness, chargeBeamColor);
         }
 
         void OnDestroy()
         {
-            beamPool?.Clear();
+            foreach (ObjectPool<Projectile> pool in modulePools.Values)
+                pool.Clear();
             chargeBeamPool?.Clear();
         }
 
         void Update()
         {
+            if (input.SwapWeaponPressedThisFrame)
+                SwapModule();
+
+            // 과열 중에는 충전을 끊고, 사격 키는 배출 시도로만 쓴다
+            if (heat.IsOverheated)
+            {
+                charging = false;
+                if (input.FirePressedThisFrame && !movement.ControlLocked)
+                    heat.TryVent();
+                return;
+            }
+
             if (input.FirePressedThisFrame)
             {
-                FireBeam();
+                FireModule();
                 charging = true;
                 chargeStartTime = Time.time;
             }
@@ -115,13 +144,31 @@ namespace Platformer.Player
             chargeEffect.color = color;
         }
 
-        void FireBeam()
+        void SwapModule()
+        {
+            if (loadout.Modules.Count <= 1) return;
+            moduleIndex = (moduleIndex + 1) % loadout.Modules.Count;
+        }
+
+        // 현재 모듈의 탄을 쏜다. 여러 발이면 위아래로 고르게 벌려 쏜다
+        void FireModule()
         {
             if (movement.ControlLocked || Time.time < nextFireTime) return;
 
-            nextFireTime = Time.time + settings.FireCooldown;
-            beamPool.Get().Launch(MuzzlePosition, Direction, settings.BeamSpeed, settings.BeamRange, settings.BeamRadius,
-                settings.BeamDamage, hitLayers);
+            WeaponModule module = CurrentModule;
+            nextFireTime = Time.time + module.FireCooldown;
+
+            ObjectPool<Projectile> pool = modulePools[module];
+            int count = module.ProjectileCount;
+            float step = count > 1 ? module.SpreadAngle / (count - 1) : 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float angle = count > 1 ? -module.SpreadAngle * 0.5f + step * i : 0f;
+                Vector2 direction = Quaternion.Euler(0f, 0f, angle * movement.FacingDirection) * Direction;
+                pool.Get().Launch(MuzzlePosition, direction, module.Speed, module.Range, module.Radius,
+                    module.Damage, hitLayers, module.PierceEnemies);
+            }
+            heat.AddHeat(module.Heat);
         }
 
         void FireChargeBeam()
@@ -129,12 +176,13 @@ namespace Platformer.Player
             // 조작이 잠긴 동안(대시 등) 다 찬 충전을 떼면 쏘지 못하고 사라진다
             if (movement.ControlLocked) return;
 
-            nextFireTime = Time.time + settings.FireCooldown;
+            nextFireTime = Time.time + CurrentModule.FireCooldown;
             chargeBeamPool.Get().Launch(MuzzlePosition, Direction, settings.ChargeBeamSpeed, settings.ChargeBeamRange, settings.ChargeBeamRadius,
                 settings.ChargeBeamDamage, hitLayers);
+            heat.AddHeat(settings.ChargeBeamHeat);
         }
 
-        // 빔 크기와 색은 처음 만들 때 정해진다 (플레이 중에 설정을 바꾸면 이미 만든 빔에는 반영되지 않음)
+        // 탄 크기와 색은 처음 만들 때 정해진다 (플레이 중에 설정을 바꾸면 이미 만든 탄에는 반영되지 않음)
         ObjectPool<Projectile> CreatePool(string beamName, float length, float thickness, Color color)
         {
             ObjectPool<Projectile> pool = null;
@@ -142,7 +190,7 @@ namespace Platformer.Player
                 () => CreateBeam(beamName, length, thickness, color, pool),
                 beam => beam.gameObject.SetActive(true),
                 beam => beam.gameObject.SetActive(false),
-                // 플레이 종료 시에는 장면이 빔을 먼저 파괴한 뒤 풀이 정리되므로, 이미 사라진 빔은 건너뛴다
+                // 플레이 종료 시에는 장면이 탄을 먼저 파괴한 뒤 풀이 정리되므로, 이미 사라진 탄은 건너뛴다
                 beam => { if (beam != null) Destroy(beam.gameObject); },
                 defaultCapacity: 8,
                 maxSize: 32);

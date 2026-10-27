@@ -4,6 +4,7 @@ using System.Linq;
 using Platformer.Enemies;
 using Platformer.Gameplay;
 using Platformer.Player;
+using Platformer.UI;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -405,12 +406,32 @@ namespace Platformer.EditorTools
             charge.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(PlaceholderSpritePath);
             charge.enabled = false;
 
-            Configure(player.AddComponent<PlayerShooter>(), s =>
+            var heat = player.AddComponent<PlayerHeat>();
+            Configure(heat, s =>
             {
                 s.FindProperty("settings").objectReferenceValue = LoadCombatSettings();
+                s.FindProperty("shockwaveLayers").intValue = LayerMask.GetMask("Enemy");
+            });
+
+            // 과열 게이지 임시 표시: 머리 위 (N5 HUD에서 교체)
+            var shooter = player.AddComponent<PlayerShooter>();
+            Configure(shooter, s =>
+            {
+                s.FindProperty("settings").objectReferenceValue = LoadCombatSettings();
+                s.FindProperty("loadout").objectReferenceValue = LoadWeaponLoadout();
                 s.FindProperty("hitLayers").intValue = LayerMask.GetMask("Ground", "Enemy");
                 s.FindProperty("beamSprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(PlaceholderSpritePath);
                 s.FindProperty("chargeEffect").objectReferenceValue = charge;
+            });
+
+            var gauge = new GameObject("HeatGauge");
+            gauge.transform.SetParent(player.transform, false);
+            gauge.transform.localPosition = new Vector3(0f, PlayerSize.y * 0.5f + 0.15f, 0f);
+            Configure(gauge.AddComponent<PlayerHeatGauge>(), s =>
+            {
+                s.FindProperty("heat").objectReferenceValue = heat;
+                s.FindProperty("shooter").objectReferenceValue = shooter;
+                s.FindProperty("barSprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(PlaceholderSpritePath);
             });
 
             Configure(player.AddComponent<PlayerAnimator>(), s =>
@@ -565,19 +586,57 @@ namespace Platformer.EditorTools
 
         static PlayerCombatSettings LoadCombatSettings() => LoadOrCreate<PlayerCombatSettings>("PlayerCombatSettings", s =>
         {
-            s.FindProperty("beamSpeed").floatValue = 14f;
-            s.FindProperty("beamRange").floatValue = 9f;
-            s.FindProperty("beamRadius").floatValue = 0.06f;
             s.FindProperty("chargeBeamSpeed").floatValue = 16f;
             s.FindProperty("chargeBeamRange").floatValue = 10f;
             s.FindProperty("chargeBeamRadius").floatValue = 0.15f;
             s.FindProperty("shoulderDepth").floatValue = 0.22f;
             s.FindProperty("muzzleDistance").floatValue = 0.3f;
-            s.FindProperty("beamLength").floatValue = 0.44f;
-            s.FindProperty("beamThickness").floatValue = 0.08f;
             s.FindProperty("chargeBeamLength").floatValue = 0.88f;
             s.FindProperty("chargeBeamThickness").floatValue = 0.16f;
         });
+
+        // 무기 모듈 3종과 장착 목록 (GDD 4.3). W1은 클래스 기본값 그대로다
+        static WeaponLoadout LoadWeaponLoadout()
+        {
+            EnsureFolder($"{DataFolder}/Weapons");
+            var rapid = LoadOrCreate<WeaponModule>("Weapons/W1_Rapid", _ => { });
+            var pierce = LoadOrCreate<WeaponModule>("Weapons/W2_Pierce", s =>
+            {
+                s.FindProperty("displayName").stringValue = "관통탄";
+                s.FindProperty("color").colorValue = new Color(1f, 0.4f, 0.9f);
+                s.FindProperty("damage").intValue = 25;
+                s.FindProperty("fireCooldown").floatValue = 0.35f;
+                s.FindProperty("heat").floatValue = 22f;
+                s.FindProperty("pierceEnemies").boolValue = true;
+                s.FindProperty("speed").floatValue = 18f;
+                s.FindProperty("range").floatValue = 10f;
+                s.FindProperty("radius").floatValue = 0.08f;
+                s.FindProperty("length").floatValue = 0.88f;
+                s.FindProperty("thickness").floatValue = 0.1f;
+            });
+            var spread = LoadOrCreate<WeaponModule>("Weapons/W4_Spread", s =>
+            {
+                s.FindProperty("displayName").stringValue = "산탄";
+                s.FindProperty("color").colorValue = new Color(0.5f, 1f, 0.4f);
+                s.FindProperty("damage").intValue = 7;
+                s.FindProperty("fireCooldown").floatValue = 0.3f;
+                s.FindProperty("heat").floatValue = 20f;
+                s.FindProperty("projectileCount").intValue = 3;
+                s.FindProperty("spreadAngle").floatValue = 24f;
+                s.FindProperty("speed").floatValue = 12f;
+                s.FindProperty("range").floatValue = 5f;
+                s.FindProperty("length").floatValue = 0.3f;
+            });
+
+            return LoadOrCreate<WeaponLoadout>("Weapons/WeaponLoadout", s =>
+            {
+                SerializedProperty modules = s.FindProperty("modules");
+                var all = new Object[] { rapid, pierce, spread };
+                modules.arraySize = all.Length;
+                for (int i = 0; i < all.Length; i++)
+                    modules.GetArrayElementAtIndex(i).objectReferenceValue = all[i];
+            });
+        }
 
         // 대시 수치는 클래스 기본값이 이미 새 크기 기준이다 (GDD 4.4)
         static PlayerDashSettings LoadDashSettings() => LoadOrCreate<PlayerDashSettings>("PlayerDashSettings", _ => { });

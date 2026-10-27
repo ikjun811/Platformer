@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b391a64fa9ee3724793e2b7f9387f3fd, type: 3}
+  m_Name: W4_Spread
+  m_EditorClassIdentifier: Platformer.Runtime::Platformer.Player.WeaponModule
+  displayName: "\uC0B0\uD0C4"
+  color: {r: 0.5, g: 1, b: 0.4, a: 1}
+  damage: 7
+  fireCooldown: 0.3
+  heat: 20
+  projectileCount: 3
+  spreadAngle: 24
+  pierceEnemies: 0
+  speed: 12
+  range: 5
+  radius: 0.06
+  length: 0.3
+  thickness: 0.08

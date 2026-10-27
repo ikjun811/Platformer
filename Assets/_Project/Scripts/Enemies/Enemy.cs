@@ -17,8 +17,13 @@ namespace Platformer.Enemies
         [SerializeField] LayerMask contactTargets;
 
         Health health;
+        Rigidbody2D body;
         Color baseColor;
         float flashEndTime;
+        float stunEndTime;
+
+        /// <summary>경직 중인지. 경직 중에는 이동 컴포넌트가 움직이지 않는다 (밀려나는 속도는 물리에 맡긴다)</summary>
+        public bool IsStunned => Time.time < stunEndTime;
 
         void Reset()
         {
@@ -28,6 +33,7 @@ namespace Platformer.Enemies
         void Awake()
         {
             health = GetComponent<Health>();
+            body = GetComponent<Rigidbody2D>();
             health.SetMax(settings.MaxHealth, true);
             if (spriteRenderer != null)
                 baseColor = spriteRenderer.color;
@@ -57,6 +63,14 @@ namespace Platformer.Enemies
 
             var target = collision.collider.GetComponentInParent<IDamageable>();
             target?.TakeDamage(new DamageInfo(settings.ContactDamage, transform.position));
+        }
+
+        /// <summary>속도를 바꿔 밀쳐내고 일정 시간 경직시킨다 (과열 배출 충격파, 카운터 등).</summary>
+        public void ApplyKnockback(Vector2 velocity, float stunDuration)
+        {
+            if (body != null)
+                body.linearVelocity = velocity;
+            stunEndTime = Mathf.Max(stunEndTime, Time.time + stunDuration);
         }
 
         void OnDamaged(DamageInfo damage)
