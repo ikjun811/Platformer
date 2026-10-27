@@ -70,6 +70,14 @@ namespace Platformer.EditorTools
                 return;
             }
 
+            ApplyPixelPerfectCamera(cam);
+            EditorSceneManager.MarkSceneDirty(cam.gameObject.scene);
+            Debug.Log($"[PixelProjectSetup] {cam.name}에 Pixel Perfect Camera 적용 ({ReferenceWidth}x{ReferenceHeight}, PPU {AssetsPixelsPerUnit}). 씬을 저장하세요.");
+        }
+
+        /// <summary>카메라에 GDD v2 기준 Pixel Perfect Camera를 붙이고 값을 맞춘다 (씬 빌더에서도 쓴다).</summary>
+        internal static void ApplyPixelPerfectCamera(Camera cam)
+        {
             Undo.RecordObject(cam, "Setup Pixel Perfect Camera");
             cam.orthographic = true;
 
@@ -85,10 +93,7 @@ namespace Platformer.EditorTools
             ppc.cropFrame = PixelPerfectCamera.CropFrame.Windowbox;
             // 스프라이트 위치를 픽셀 격자에 맞춘다 (크기를 정수배로만 쓰므로 렌더 텍스처 확대는 쓰지 않는다)
             ppc.gridSnapping = PixelPerfectCamera.GridSnapping.PixelSnapping;
-
             EditorUtility.SetDirty(ppc);
-            EditorSceneManager.MarkSceneDirty(cam.gameObject.scene);
-            Debug.Log($"[PixelProjectSetup] {cam.name}에 Pixel Perfect Camera 적용 ({ReferenceWidth}x{ReferenceHeight}, PPU {AssetsPixelsPerUnit}). 씬을 저장하세요.");
         }
 
         static int FindLayer(SerializedProperty layers, string name)

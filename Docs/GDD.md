@@ -203,7 +203,9 @@
 - **스프라이트**: PPU 64, Filter Mode = Point, 압축 없음, 피벗 = 발 중앙 (캐릭터) / 왼쪽 아래 (타일)
 - **카메라**: Pixel Perfect Camera, 기준 해상도 **640x360** (가로 10타일 x 세로 5.625타일). 720p 2배, 1080p 3배, 1440p 4배, 4K 6배로 정수 확대된다. Crop Frame = Windowbox (정수배가 아닌 창에서는 검은 테두리로 보이는 범위를 유지), Grid Snapping = Pixel Snapping. 메뉴 `Tools/Platformer/Setup/Pixel Perfect Camera (Current Scene)`
 - **캐릭터 크기 참고**: 해병 키 약 41px(0.64타일), 외계 생물 몸길이 약 110px(1.7타일)
-- **이동 수치**: 이전 수치(키 2.25타일 기준)는 쓰지 않는다. 새 캐릭터 크기에 맞춰 다시 정한다 (N1)
+- **이동 수치**: 이전 수치(키 2.25타일 기준)는 쓰지 않는다. 새 수치 SO는 `Assets/_Project/Data/V2/`에 있다. N0 임시값: 최고 속도 4.5, 지상 가감속 60, 점프 2.2타일 (최고점 0.35초), 최대 낙하 12. N1에서 조정한다
+- **플레이어 충돌체**: 0.3125 x 0.625타일 (20 x 40px)
+- **테스트 씬**: `Assets/_Project/Scenes/TestArena.unity`. 메뉴 `Tools/Platformer/Build Test Arena`가 30x12타일 2층 방(바닥 + 얇은 발판 윗면 4·6·8 + 계단)을 만든다
 - **레이어**: Ground, OneWay, Player, Enemy, PlayerProjectile, EnemyProjectile, Interactable, Room (유지). 파괴 오브젝트용 레이어 추가는 N4에서 검토한다 (Project Settings 변경이라 승인 필요)
 - **소팅 레이어**: Default → Background → Tiles → Props → Characters → Projectiles → FX → UI (뒤일수록 앞에 그려짐). 메뉴 `Tools/Platformer/Setup/Sorting Layers`
 - **태그**: Player 외에는 쓰지 않는다. 판별은 컴포넌트와 레이어로 한다
@@ -236,7 +238,7 @@
 
 이전 M0~M2에서 만든 기반(입력, 이동, 카메라, 체력·피격, 투사체, 적 기본형)을 이어 쓴다.
 
-- [ ] **N0 전환 정리**: 에셋 정리(원본을 `Docs/ArtSources/`로 이동, `__MACOSX`·zip 삭제 — 완료), 에셋 변환과 임포트 설정(`convert_marsh.py`, PPU 64·Point — 완료), 화면 설정 메뉴(Pixel Perfect Camera 640x360, 소팅 레이어 — 완료), 입력 액션 개편과 쓰지 않는 스크립트 제거(완료), 새 테스트 씬(새 타일), 예전 아트·씬 정리
+- [ ] **N0 전환 정리**: 에셋 정리(원본을 `Docs/ArtSources/`로 이동, `__MACOSX`·zip 삭제 — 완료), 에셋 변환과 임포트 설정(`convert_marsh.py`, PPU 64·Point — 완료), 화면 설정 메뉴(Pixel Perfect Camera 640x360, 소팅 레이어 — 완료), 입력 액션 개편과 쓰지 않는 스크립트 제거(완료), 새 테스트 씬(`TestArenaBuilder` — 완료), 예전 아트·씬 정리
 - [ ] **N1 플레이어**: 이동 수치 재조정, 새 애니메이션 연결, 발판 내려가기, 페이즈 대시(3연속)
 - [ ] **N2 사격**: 수평 사격, 과열 게이지, 과열 배출, 차지 샷, 무기 모듈(W1·W2·W4)과 교체
 - [ ] **N3 적·카운터**: E1 러너(신호·물기), 카운터와 카운터 처치, E2 브루트, E5 감염 병사, 사망 연출·혈흔

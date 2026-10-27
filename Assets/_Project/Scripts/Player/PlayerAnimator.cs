@@ -5,7 +5,7 @@ namespace Platformer.Player
 {
     /// <summary>
     /// 플레이어 스프라이트 애니메이션.
-    /// 프레임을 가로로 이어붙인 시트(Tools/ArtPipeline/process_sprites.py 결과)를 플레이 시작 때 프레임으로 자르고,
+    /// 프레임을 가로로 이어붙인 시트(Tools/ArtPipeline/convert_marsh.py 결과)를 플레이 시작 때 프레임으로 자르고,
     /// 매 프레임 플레이어 상태에 맞는 그림을 SpriteRenderer에 넣는다.
     /// 피벗은 서 있을 때 충돌체의 바닥 중앙이고, 왼쪽을 볼 때는 좌우 반전한다.
     /// Animator Controller 대신 코드로 상태를 고른다 (상태 판단을 이동 컴포넌트와 같은 기준으로 한곳에서 하기 위해).
@@ -13,8 +13,8 @@ namespace Platformer.Player
     [RequireComponent(typeof(PlayerMovement), typeof(BoxCollider2D))]
     public class PlayerAnimator : MonoBehaviour
     {
-        // GDD 8장: 캐릭터 아트는 1타일 = 128px
-        const float PixelsPerUnit = 128f;
+        // GDD v2 8장: 1타일 = 64px
+        const float PixelsPerUnit = 64f;
 
         [Serializable]
         class Clip

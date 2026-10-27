@@ -2574,7 +2574,7 @@ Camera:
   far clip plane: 1000
   field of view: 34
   orthographic: 1
-  orthographic size: 5.625
+  orthographic size: 2.8125
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -6493,10 +6493,6 @@ GameObject:
   - component: {fileID: 1190876189}
   - component: {fileID: 1190876188}
   - component: {fileID: 1190876187}
-  - component: {fileID: 1190876192}
-  - component: {fileID: 1190876193}
-  - component: {fileID: 1190876194}
-  - component: {fileID: 1190876196}
   - component: {fileID: 1190876195}
   - component: {fileID: 1190876197}
   - component: {fileID: 1190876199}
@@ -6628,49 +6624,6 @@ Transform:
   - {fileID: 1219307012}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1190876192
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1190876186}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b1e0d6b0a903474f9215cfec98eb831, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Platformer.Runtime::Platformer.Player.PlayerCrouch
-  obstacleLayers:
-    serializedVersion: 2
-    m_Bits: 64
-  visual: {fileID: 0}
---- !u!114 &1190876193
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1190876186}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: da14b680a1d432b44b8736015cc7758d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Platformer.Runtime::Platformer.Player.PlayerLedgeGrab
-  ledgeLayers:
-    serializedVersion: 2
-    m_Bits: 64
---- !u!114 &1190876194
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1190876186}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 224f03f820be674439bd40b14d785aa8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Platformer.Runtime::Platformer.Player.PlayerSlide
 --- !u!114 &1190876195
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6691,20 +6644,6 @@ MonoBehaviour:
   beamColor: {r: 1, g: 0.9, b: 0.3, a: 1}
   chargeBeamColor: {r: 0.3, g: 1, b: 0.95, a: 1}
   chargeEffect: {fileID: 1219307011}
---- !u!114 &1190876196
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1190876186}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 19ec46d184db16d49a061860fb25f45a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Platformer.Runtime::Platformer.Player.PlayerAim
-  settings: {fileID: 11400000, guid: 1d119e1b4981b3547b99638ee681a3d4, type: 2}
-  aimMarker: {fileID: 138962741}
 --- !u!114 &1190876197
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6731,26 +6670,6 @@ MonoBehaviour:
   jump:
     sheet: {fileID: 2800000, guid: 822ac3f528e0b144080aa4aa22584a33, type: 3}
     cellWidth: 384
-    pivotX: 192
-    framesPerSecond: 0
-  crouch:
-    sheet: {fileID: 2800000, guid: f30f5b1f660865f4983e727e73e01b0d, type: 3}
-    cellWidth: 384
-    pivotX: 192
-    framesPerSecond: 0
-  slide:
-    sheet: {fileID: 2800000, guid: c0a37fee3bd40e341b55803766c2a6ae, type: 3}
-    cellWidth: 384
-    pivotX: 192
-    framesPerSecond: 10
-  ledgeHang:
-    sheet: {fileID: 2800000, guid: 78025741c1a9f384b9a642887481f459, type: 3}
-    cellWidth: 384
-    pivotX: 192
-    framesPerSecond: 0
-  ledgeClimb:
-    sheet: {fileID: 2800000, guid: 293e7373b9a711b48b7da00cc3fb065e, type: 3}
-    cellWidth: 512
     pivotX: 192
     framesPerSecond: 0
   runSpeedThreshold: 0.5

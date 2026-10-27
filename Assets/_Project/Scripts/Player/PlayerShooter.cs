@@ -157,7 +157,7 @@ namespace Platformer.Player
             var sprite = go.AddComponent<SpriteRenderer>();
             sprite.sprite = beamSprite;
             sprite.color = color;
-            sprite.sortingOrder = 20;
+            sprite.sortingLayerName = "Projectiles";
 
             var beam = go.AddComponent<Projectile>();
             beam.Init(pool.Release);
