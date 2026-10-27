@@ -8,12 +8,16 @@ namespace Platformer.EditorTools
     /// - Characters/Marine, Enemies/, Tiles/, Props/, FX/: marsh-sci-fi 픽셀아트 (GDD v2 8장: PPU 64, Point, 무압축).
     ///   Tools/ArtPipeline/convert_marsh.py가 만드는 파일이라 임포트할 때마다 강제 적용한다.
     ///   캐릭터 시트의 프레임 분할은 런타임에 애니메이션 컴포넌트가 한다
+    /// - UI/: Tools/ArtPipeline/make_ui.py가 만드는 HUD 그림. Point, 무압축, PPU 100 (그림 1픽셀 = 캔버스 1단위).
+    ///   파일 이름이 _9sN 으로 끝나면 9-slice 테두리를 N 픽셀로 설정한다
     /// - 그 외 (Placeholder 등 임시 타일): PPU 16, Point. 최초 임포트 시에만 적용하므로 이후 인스펙터에서 바꾼 값은 유지된다
     /// </summary>
     public class PixelArtImporter : AssetPostprocessor
     {
         const string ArtFolder = "Assets/_Project/Art/";
         const string PropsFolder = "Assets/_Project/Art/Props/";
+        const string UIFolder = "Assets/_Project/Art/UI/";
+        const int UIPixelsPerUnit = 100;
         const int PixelsPerUnit = 16;
         const int MarshPixelsPerUnit = 64;
 
@@ -38,6 +42,12 @@ namespace Platformer.EditorTools
                 return;
             }
 
+            if (assetPath.StartsWith(UIFolder))
+            {
+                ApplyUISettings(importer);
+                return;
+            }
+
             // 재임포트 시에는 사용자가 직접 바꾼 설정을 덮어쓰지 않는다
             if (!assetImporter.importSettingsMissing) return;
 
@@ -55,6 +65,26 @@ namespace Platformer.EditorTools
                 if (path.StartsWith(folder)) return true;
             }
             return false;
+        }
+
+        void ApplyUISettings(TextureImporter importer)
+        {
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.spritePixelsPerUnit = UIPixelsPerUnit;
+            importer.filterMode = FilterMode.Point;
+            importer.wrapMode = TextureWrapMode.Clamp;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.mipmapEnabled = false;
+            importer.alphaIsTransparency = true;
+
+            // 이름 끝 _9sN → 9-slice 테두리 N 픽셀
+            string fileName = System.IO.Path.GetFileNameWithoutExtension(assetPath);
+            int marker = fileName.LastIndexOf("_9s", System.StringComparison.Ordinal);
+            int border = 0;
+            if (marker >= 0)
+                int.TryParse(fileName.Substring(marker + 3), out border);
+            importer.spriteBorder = new Vector4(border, border, border, border);
         }
 
         void ApplyMarshSettings(TextureImporter importer)

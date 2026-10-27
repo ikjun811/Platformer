@@ -33,6 +33,7 @@ namespace Platformer.EditorTools
         const string EnemyArtFolder = "Assets/_Project/Art/Enemies/";
         const string HealthShardSpritePath = "Assets/_Project/Art/FX/Health_Shard.png";
         const string ExplosionSheetPath = "Assets/_Project/Art/FX/Explosion.png";
+        const string UIArtFolder = "Assets/_Project/Art/UI/";
         const string PlaceholderSpritePath = "Assets/_Project/Art/Placeholder/Placeholder_Tile.png";
         const string NoFrictionPath = "Assets/_Project/Data/NoFriction.physicsMaterial2D";
         const string DataFolder = "Assets/_Project/Data/V2";
@@ -106,7 +107,7 @@ namespace Platformer.EditorTools
             Scene scene = OpenOrCreateScene();
             if (!scene.IsValid()) return;
 
-            foreach (string rootName in new[] { "Grid", "Walkways", "Player", "TestEnemies", "Room" })
+            foreach (string rootName in new[] { "Grid", "Walkways", "Player", "TestEnemies", "Room", "HUD" })
             {
                 GameObject old = GameObject.Find(rootName);
                 if (old != null) Object.DestroyImmediate(old);
@@ -121,9 +122,10 @@ namespace Platformer.EditorTools
             PaintSolid(CreateTilemap(grid, "Ground", "Tiles", "Ground"));
             BuildWalkways();
             PlayerMovement player = BuildPlayer();
-            BuildRoom();
+            Room room = BuildRoom();
             SetupCamera(player);
             SetupGlobalLight();
+            BuildHud(player.gameObject, room);
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
@@ -431,7 +433,6 @@ namespace Platformer.EditorTools
                 s.FindProperty("shockwaveLayers").intValue = LayerMask.GetMask("Enemy");
             });
 
-            // 과열 게이지 임시 표시: 머리 위 (N5 HUD에서 교체)
             var shooter = player.AddComponent<PlayerShooter>();
             Configure(shooter, s =>
             {
@@ -440,16 +441,6 @@ namespace Platformer.EditorTools
                 s.FindProperty("hitLayers").intValue = LayerMask.GetMask("Ground", "Enemy");
                 s.FindProperty("beamSprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(PlaceholderSpritePath);
                 s.FindProperty("chargeEffect").objectReferenceValue = charge;
-            });
-
-            var gauge = new GameObject("HeatGauge");
-            gauge.transform.SetParent(player.transform, false);
-            gauge.transform.localPosition = new Vector3(0f, PlayerSize.y * 0.5f + 0.15f, 0f);
-            Configure(gauge.AddComponent<PlayerHeatGauge>(), s =>
-            {
-                s.FindProperty("heat").objectReferenceValue = heat;
-                s.FindProperty("shooter").objectReferenceValue = shooter;
-                s.FindProperty("barSprite").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(PlaceholderSpritePath);
             });
 
             Configure(player.AddComponent<PlayerAnimator>(), s =>
@@ -529,7 +520,7 @@ namespace Platformer.EditorTools
         // ───────── 방 ─────────
 
         // 소탕 방: 문('D'), 출현 지점('1'~'9'), 시작 영역, 웨이브 데이터를 묶는다
-        static void BuildRoom()
+        static Room BuildRoom()
         {
             var prefabs = BuildEnemyPrefabs();
             var roomObject = new GameObject("Room");
@@ -567,6 +558,7 @@ namespace Platformer.EditorTools
                 s.FindProperty("respawnPoint").objectReferenceValue = respawn;
                 SetArray(s.FindProperty("props"), props);
             });
+            return room;
         }
 
         // ───────── 환경 요소 (GDD 4.7) ─────────
@@ -844,6 +836,47 @@ namespace Platformer.EditorTools
             clip.FindPropertyRelative("framesPerSecond").floatValue = framesPerSecond;
         }
 
+        // ───────── HUD (N5) ─────────
+
+        // 화면 공간 캔버스(카메라 기준)에 HUD를 붙인다. 640x360 기준으로 정수배 확대되고, Pixel Perfect Camera의 검은 테두리 안쪽에 그려진다
+        static void BuildHud(GameObject player, Room room)
+        {
+            var hud = new GameObject("HUD", typeof(RectTransform));
+            var canvas = hud.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceCamera;
+            canvas.worldCamera = Camera.main;
+            canvas.planeDistance = 1f;
+            canvas.pixelPerfect = true;
+            canvas.sortingLayerName = "UI";
+
+            var scaler = hud.AddComponent<UnityEngine.UI.CanvasScaler>();
+            scaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(640f, 360f);
+            scaler.screenMatchMode = UnityEngine.UI.CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 0.5f;
+
+            Configure(hud.AddComponent<GameHud>(), s =>
+            {
+                s.FindProperty("playerHealth").objectReferenceValue = player.GetComponent<Health>();
+                s.FindProperty("heat").objectReferenceValue = player.GetComponent<PlayerHeat>();
+                s.FindProperty("dash").objectReferenceValue = player.GetComponent<PlayerDash>();
+                s.FindProperty("shooter").objectReferenceValue = player.GetComponent<PlayerShooter>();
+                s.FindProperty("room").objectReferenceValue = room;
+                s.FindProperty("font").objectReferenceValue = AssetDatabase.LoadAssetAtPath<Font>($"{UIArtFolder}Fonts/Righteous-Regular.ttf");
+                s.FindProperty("whiteSprite").objectReferenceValue = LoadUISprite("White");
+                s.FindProperty("dotSprite").objectReferenceValue = LoadUISprite("Pip");
+            });
+        }
+
+        static Sprite LoadUISprite(string name)
+        {
+            string path = $"{UIArtFolder}{name}.png";
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+            if (sprite == null)
+                Debug.LogError($"[TestArenaBuilder] UI 그림이 없습니다: {path} (python Tools/ArtPipeline/make_ui.py 실행 필요)");
+            return sprite;
+        }
+
         // ───────── 카메라 ─────────
 
         static void SetupCamera(PlayerMovement player)
@@ -931,7 +964,7 @@ namespace Platformer.EditorTools
             var rapid = LoadOrCreate<WeaponModule>("Weapons/W1_Rapid", _ => { });
             var pierce = LoadOrCreate<WeaponModule>("Weapons/W2_Pierce", s =>
             {
-                s.FindProperty("displayName").stringValue = "관통탄";
+                s.FindProperty("displayName").stringValue = "PIERCE";
                 s.FindProperty("color").colorValue = new Color(1f, 0.4f, 0.9f);
                 s.FindProperty("damage").intValue = 25;
                 s.FindProperty("fireCooldown").floatValue = 0.35f;
@@ -945,7 +978,7 @@ namespace Platformer.EditorTools
             });
             var spread = LoadOrCreate<WeaponModule>("Weapons/W4_Spread", s =>
             {
-                s.FindProperty("displayName").stringValue = "산탄";
+                s.FindProperty("displayName").stringValue = "SPREAD";
                 s.FindProperty("color").colorValue = new Color(0.5f, 1f, 0.4f);
                 s.FindProperty("damage").intValue = 7;
                 s.FindProperty("fireCooldown").floatValue = 0.3f;

@@ -58,6 +58,9 @@ namespace Platformer.Player
         /// <summary>지금 쓸 수 있는 남은 대시 횟수 (HUD용)</summary>
         public int RemainingCharges => coolingDown ? 0 : settings.MaxChain - chainCount;
 
+        /// <summary>연속으로 쓸 수 있는 최대 횟수 (HUD용)</summary>
+        public int MaxCharges => settings.MaxChain;
+
         void Reset()
         {
             passThroughLayers = LayerMask.GetMask("Enemy");

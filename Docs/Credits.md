@@ -21,7 +21,7 @@
 ## 폰트
 | 폰트 | 제작자 | 라이선스 | 쓰는 곳 |
 |---|---|---|---|
-| Righteous | Astigmatic (Brian J. Bonislawsky) | SIL Open Font License 1.1 (soft_retro에 포함된 `OFL.txt`) | UI 글자 (영어). 게임에 넣을 때 OFL 전문을 함께 둔다. 한글 글리프 없음 |
+| Righteous | Astigmatic (Brian J. Bonislawsky) | SIL Open Font License 1.1 (soft_retro에 포함된 `OFL.txt`) | UI 글자 (영어). `Assets/_Project/Art/UI/Fonts/`에 OFL 전문(`OFL.txt`)과 함께 둔다 (`make_ui.py`가 복사). 한글 글리프 없음 |
 
 ## 사용 중단한 에셋 (GDD v1, 2026-10-27 프로젝트에서 삭제)
 v1 기록 보관용. 게임에는 포함되지 않는다.

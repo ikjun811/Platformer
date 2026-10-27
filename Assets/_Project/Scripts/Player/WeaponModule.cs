@@ -9,8 +9,8 @@ namespace Platformer.Player
     [CreateAssetMenu(fileName = "WeaponModule", menuName = "Platformer/Weapon Module")]
     public class WeaponModule : ScriptableObject
     {
-        [Tooltip("표시 이름")]
-        [SerializeField] string displayName = "연사";
+        [Tooltip("HUD 표시 이름 (영어, UI 폰트에 한글이 없다)")]
+        [SerializeField] string displayName = "RAPID";
         [Tooltip("탄 색 (임시 그래픽). 현재 모듈 표시에도 쓴다")]
         [SerializeField] Color color = new(1f, 0.9f, 0.3f);
 

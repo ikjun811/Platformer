@@ -2,7 +2,8 @@
     "name": "Platformer.Runtime",
     "rootNamespace": "Platformer",
     "references": [
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
